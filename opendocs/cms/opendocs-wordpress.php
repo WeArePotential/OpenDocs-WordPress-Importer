@@ -1,8 +1,8 @@
 <?php 	
 
-require_once WP_PLUGIN_DIR . '/opendocs/opendocs/opendocs-crud-interface.php';
-require_once WP_PLUGIN_DIR . '/opendocs/opendocs/provider/opendocs-xml-wrapper.php';
-require_once WP_PLUGIN_DIR . '/opendocs/includes/class-utils.php';
+require_once WP_PLUGIN_DIR . '/OpenDocs-WordPress-Importer/opendocs/opendocs-crud-interface.php';
+require_once WP_PLUGIN_DIR . '/OpenDocs-WordPress-Importer/opendocs/provider/opendocs-xml-wrapper.php';
+require_once WP_PLUGIN_DIR . '/OpenDocs-WordPress-Importer/includes/class-utils.php';
 
 /**
  * The CMS Wrapper Class (Wordpress based)

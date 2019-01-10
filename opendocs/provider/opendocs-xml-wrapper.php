@@ -1,9 +1,9 @@
 <?php 
 
-require_once WP_PLUGIN_DIR . '/opendocs/opendocs/opendocs-data-interface.php';
-require_once WP_PLUGIN_DIR . '/opendocs/opendocs/opendocs-community.php';
-require_once WP_PLUGIN_DIR . '/opendocs/opendocs/cms/opendocs-wordpress.php';
-require_once WP_PLUGIN_DIR . '/opendocs/lib/vendor/autoload.php';
+require_once WP_PLUGIN_DIR . '/OpenDocs-WordPress-Importer/opendocs/opendocs-data-interface.php';
+require_once WP_PLUGIN_DIR . '/OpenDocs-WordPress-Importer/opendocs/opendocs-community.php';
+require_once WP_PLUGIN_DIR . '/OpenDocs-WordPress-Importer/opendocs/cms/opendocs-wordpress.php';
+require_once WP_PLUGIN_DIR . '/OpenDocs-WordPress-Importer/lib/vendor/autoload.php';
 
 use \Curl\MultiCurl;
 use \Curl\Curl;

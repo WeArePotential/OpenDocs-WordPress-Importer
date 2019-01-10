@@ -21,9 +21,9 @@
  * @author     Simon <email@example.com>
  */
 
-require_once( WP_PLUGIN_DIR . '/opendocs/provider/opendocs-xml-wrapper.php' );
-require_once( WP_PLUGIN_DIR . '/includes/class-utils.php' );
-require_once( WP_PLUGIN_DIR . '/opendocs/cms/opendocs-wordpress.php' );
+require_once( WP_PLUGIN_DIR . '/OpenDocs-WordPress-Importer/opendocs/provider/opendocs-xml-wrapper.php' );
+require_once( WP_PLUGIN_DIR . '/OpenDocs-WordPress-Importer/includes/class-utils.php' );
+require_once( WP_PLUGIN_DIR . '/OpenDocs-WordPress-Importer/opendocs/cms/opendocs-wordpress.php' );
 
 class OpenDocs_Importer_Admin {
 
