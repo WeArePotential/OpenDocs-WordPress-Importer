@@ -679,6 +679,7 @@ class XML_IDocs_Query implements IDocs_Query_Interface {
 	private function getXMLDomDocMulti( $requests ) {
         $mh = curl_multi_init();
 		$result = array();
+		$curls = array();
 		for( $i = 0; $i < count( $requests ); $i++ ) {
 			$curls[$i] = curl_init();
 			curl_setopt( $curls[$i], CURLOPT_URL, $requests[$i] );
