@@ -708,13 +708,14 @@ class XML_IDocs_Query implements IDocs_Query_Interface {
 				$execReturnValue = curl_multi_exec( $mh, $running );
 			} while ( $execReturnValue == CURLM_CALL_MULTI_PERFORM );
 		}
-		
-		foreach( $curls as $id => $c ) {
-			$xmlContent = curl_multi_getcontent( $c );
-			$doc = new DOMDocument();
-        	$doc->loadXML($xmlContent);
-			$result[] = $doc;
-			curl_multi_remove_handle( $mh, $c );
+		if (count($curls) > 0) {
+			foreach ( $curls as $id => $c ) {
+				$xmlContent = curl_multi_getcontent( $c );
+				$doc        = new DOMDocument();
+				$doc->loadXML( $xmlContent );
+				$result[] = $doc;
+				curl_multi_remove_handle( $mh, $c );
+			}
 		}
 		curl_multi_close( $mh );
 		return $result;
