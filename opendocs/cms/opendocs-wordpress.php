@@ -210,9 +210,10 @@ class Wordpress_IDocs implements IDocs_CRUD {
 		else : 
 				$mappingArray = $fieldMappings;
 		endif;
-		update_option('odoc_cronID', -1);	
-		
+		update_option('odoc_cronID', -1);
+
 		$itemObj = new XML_IDocs_Query('https://opendocs.ids.ac.uk/rest');
+		$itemObj->setTimeout(300);
 		$itemHandleList = $itemObj->getItemHandle( $itemList );
 		
 		if( $isCRON == false ) : 
@@ -301,11 +302,13 @@ class Wordpress_IDocs implements IDocs_CRUD {
 					$mergedArray[$key]['field_value'] = $splitted;
 				endif;	
 			endif;
-			if( strpos( $mergedArray[$key]['lang'], '{{<>}}' ) !== false ) : 
-				$splitted = array_filter( explode('{{<>}}', $mergedArray[$key]['lang']) );
-				if( ! empty( $splitted ) ) : 
-					$mergedArray[$key]['lang'] = $splitted;
-				endif;	
+			if (isset($mergedArray[$key]['lang'])) :
+				if ( strpos( $mergedArray[ $key ]['lang'], '{{<>}}' ) !== false ) :
+					$splitted = array_filter( explode( '{{<>}}', $mergedArray[ $key ]['lang'] ) );
+					if ( ! empty( $splitted ) ) :
+						$mergedArray[ $key ]['lang'] = $splitted;
+					endif;
+				endif;
 			endif;
 		endforeach;
 
@@ -398,6 +401,7 @@ class Wordpress_IDocs implements IDocs_CRUD {
 				update_option('odoc_cronID', $cronID);
 				if( $hasFileURL === 1 ) : 
 					$itemObj = new XML_IDocs_Query('https://opendocs.ids.ac.uk/rest');
+					$itemObj->setTimeout(300);
 					$downloadFile = $itemObj->getItemFiles($importedItems, $fieldValues, $itemIDs, $itemHandles);
 				endif;
 			endif;
@@ -406,6 +410,7 @@ class Wordpress_IDocs implements IDocs_CRUD {
 			if( $itemCount == $importedCount ) : 
 				if( $hasFileURL === 1 ) : 
 					$itemObj = new XML_IDocs_Query('https://opendocs.ids.ac.uk/rest');
+					$itemObj->setTimeout(300);
 					$downloadFile = $itemObj->getItemFiles($importedItems, $fieldValues, $itemIDs, $itemHandles);
 				endif;
 			endif;

@@ -105,12 +105,15 @@ class XML_IDocs_Query implements IDocs_Query_Interface {
 	private $requests = [];
 	private $isCRON = false;
 	private $cronID = -1;
-	    
+	private $timeout = 20; // Timeout in seconds
 	
     public function __construct($APIUrl) {
         $this->APIUrl = $APIUrl;
     }
-    
+
+	public function setTimeout($timeout) {
+		$this->timeout = $timeout;
+	}
 	/**
  	* Get Top Communities list.
  	*
@@ -123,7 +126,7 @@ class XML_IDocs_Query implements IDocs_Query_Interface {
 	*/
     public function getTopCommunities() {
         $topCommunitiesDom = $this->getXMLDomDoc( $this->APIUrl . '/communities/top-communities' );
-		$communities = array();
+	    $communities = array();
 		if( $topCommunitiesDom !== -1 ) : 
         	$topCommunities = $topCommunitiesDom->getElementsByTagName( 'community' );
         	foreach( $topCommunities as $community ) : 
@@ -220,15 +223,16 @@ class XML_IDocs_Query implements IDocs_Query_Interface {
  	* @return array List of items (item ID, name, collection id, item imported or not)
 	*/
     public function getItemsInCollection($collectionIDs) {
+    	$pager = 10;
     	$items = array();
 		$requests = array();
 		$itemDOMs = array();
     	foreach( $collectionIDs as $collectionID ) : 
     		$itemsInCollectionCount = $collectionID[0];
 			$existingItems = $collectionID[2];
-    		$totalPages = ceil( $itemsInCollectionCount / 100 );
+    		$totalPages = ceil( $itemsInCollectionCount / $pager );
     		for($i = 0;$i < $totalPages;$i++) {
-		        $requests[$i] = $this->APIUrl . '/collections/' . $collectionID[1] . '/items/?offset=' . $i * 100;
+		        $requests[$i] = $this->APIUrl . '/collections/' . $collectionID[1] . '/items/?offset=' . $i * $pager;
 			}
 			if( $totalPages >= 2 ) : 
 				$itemDOMs = $this->getXMLDomDocMulti( $requests, true );
@@ -266,14 +270,15 @@ class XML_IDocs_Query implements IDocs_Query_Interface {
  	* @return array List of items IDs
 	*/
 	public function getItemIDsInCollection($collectionIDs) {
+		$pager = 10;
 		$items = array();
 		$requests = array();
 		$itemDOMs = array();
     	foreach( $collectionIDs as $collectionID ) : 
     		$itemsInCollectionCount = $collectionID[0];
-    		$totalPages = ceil( $itemsInCollectionCount / 100 );
+    		$totalPages = ceil( $itemsInCollectionCount / $pager );
     		for($i = 0;$i < $totalPages;$i++) {
-		        $requests[$i] = $this->APIUrl . '/collections/' . $collectionID[1] . '/items/?offset=' . $i * 100;
+		        $requests[$i] = $this->APIUrl . '/collections/' . $collectionID[1] . '/items/?offset=' . $i * $pager;
 			} 
 			if( $totalPages >= 2 ) : 
 				$itemDOMs = $this->getXMLDomDocMulti( $requests, true );
@@ -649,8 +654,8 @@ class XML_IDocs_Query implements IDocs_Query_Interface {
 		curl_setopt( $ch, CURLOPT_HEADER, 0);
         curl_setopt( $ch, CURLOPT_HTTPHEADER, array( 'Accept: application/xml' ) );
 		curl_setopt( $ch, CURLOPT_CONNECTTIMEOUT, 0 ); 
-        curl_setopt( $ch, CURLOPT_TIMEOUT, 30 ); 
-		$response = curl_exec($ch);
+        curl_setopt( $ch, CURLOPT_TIMEOUT, $this->timeout );
+	    $response = curl_exec($ch);
 
 		curl_close($ch);
 		usleep(1000000);
@@ -692,7 +697,7 @@ class XML_IDocs_Query implements IDocs_Query_Interface {
 			curl_setopt( $curls[$i], CURLOPT_USERAGENT, "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1; .NET CLR 1.1.4322)" );
         	curl_setopt( $curls[$i], CURLOPT_HTTPHEADER, array( 'Accept: application/xml' ) );
 			curl_setopt( $curls[$i], CURLOPT_CONNECTTIMEOUT, 15 ); 
-        	curl_setopt( $curls[$i], CURLOPT_TIMEOUT, 30 ); 
+        	curl_setopt( $curls[$i], CURLOPT_TIMEOUT, $this->timeout );
 			curl_multi_add_handle( $mh, $curls[$i] );
 		}
 		do {
@@ -712,8 +717,10 @@ class XML_IDocs_Query implements IDocs_Query_Interface {
 			foreach ( $curls as $id => $c ) {
 				$xmlContent = curl_multi_getcontent( $c );
 				$doc        = new DOMDocument();
-				$doc->loadXML( $xmlContent );
-				$result[] = $doc;
+				if (strlen($xmlContent)>0) {
+					$doc->loadXML( $xmlContent );
+					$result[] = $doc;
+				}
 				curl_multi_remove_handle( $mh, $c );
 			}
 		}
@@ -804,7 +811,7 @@ class XML_IDocs_Query implements IDocs_Query_Interface {
 	private function getXMLDomDocMultiValues( $itemIDs, $requests ) {
 		$multi_curl = new MultiCurl();
 		$multi_curl->setHeader('Accept', 'application/xml');
-		$multi_curl->setConcurrency(100);
+		$multi_curl->setConcurrency(10);
 		$multi_curl->setConnectTimeout(15);
 		$multi_curl->setTimeout(15);
 		$multi_curl->setXmlDecoder(false);

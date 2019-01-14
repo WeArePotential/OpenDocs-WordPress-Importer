@@ -119,10 +119,11 @@ class OpenDocs_Importer_Admin {
 	 */
 	public function getSubCommunity() {
 		$communityID = $_POST['data'];
-		if( false === ( $subCommunities = get_transient( 'odocsCommunities' . $communityID ) ) ) : 
-		$xmlAPIQuery = new XML_IDocs_Query( 'https://opendocs.ids.ac.uk/rest' );
-		$subCommunities = $xmlAPIQuery->getSubCommunities($communityID);
-		set_transient( 'odocsCommunities' . $communityID, $subCommunities, 12 * HOUR_IN_SECONDS );
+		if( false === ( $subCommunities = get_transient( 'odocsCommunities' . $communityID ) ) ) :
+            $xmlAPIQuery = new XML_IDocs_Query( 'https://opendocs.ids.ac.uk/rest' );
+            $xmlAPIQuery->setTimeout(300);
+            $subCommunities = $xmlAPIQuery->getSubCommunities($communityID);
+            set_transient( 'odocsCommunities' . $communityID, $subCommunities, 12 * HOUR_IN_SECONDS );
 		endif;
 		echo json_encode( $subCommunities );
 		wp_die();
@@ -135,11 +136,11 @@ class OpenDocs_Importer_Admin {
 	 */
 	public function getCollections() {
 		$communityID = $_POST['data'];
-		if( false === ( $collections = get_transient( 'odocsCollections' . $communityID ) ) ) : 
-		$xmlAPIQuery = new XML_IDocs_Query( 'https://opendocs.ids.ac.uk/rest' );
-		$collections = $xmlAPIQuery->getCollectionsByCommunity($communityID);
-		set_transient( 'odocsCollections' . $communityID, $collections, 12 * HOUR_IN_SECONDS );
-		endif;
+		//if( false === ( $collections = get_transient( 'odocsCollections' . $communityID ) ) ) :
+            $xmlAPIQuery = new XML_IDocs_Query( 'https://opendocs.ids.ac.uk/rest' );
+            $collections = $xmlAPIQuery->getCollectionsByCommunity($communityID);
+            set_transient( 'odocsCollections' . $communityID, $collections, 12 * HOUR_IN_SECONDS );
+		//endif;
 		echo json_encode( $collections );
 		wp_die();
 	}
@@ -152,6 +153,7 @@ class OpenDocs_Importer_Admin {
 	public function getItemsInCollection() {
 		$collectionID = $_POST['data'];
 		$xmlAPIQuery = new XML_IDocs_Query( 'https://opendocs.ids.ac.uk/rest' );
+		$xmlAPIQuery->setTimeout(300);
 		$items = $xmlAPIQuery->getItemsInCollection($collectionID);
 		echo json_encode( $items );
 		wp_die();
