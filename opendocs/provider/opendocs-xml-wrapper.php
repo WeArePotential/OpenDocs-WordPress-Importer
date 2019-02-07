@@ -105,12 +105,19 @@ class XML_IDocs_Query implements IDocs_Query_Interface {
 	private $requests = [];
 	private $isCRON = false;
 	private $cronID = -1;
-	    
-	
+	private $timeout = 60;
+	private $connectionTimeout = 0;
+
     public function __construct($APIUrl) {
         $this->APIUrl = $APIUrl;
     }
-    
+
+    private function setTimeout($secs) {
+    	$this->timeout = $secs;
+    }
+	private function setConnectionTimeout($secs) {
+		$this->timeout = $secs;
+	}
 	/**
  	* Get Top Communities list.
  	*
@@ -464,7 +471,8 @@ class XML_IDocs_Query implements IDocs_Query_Interface {
 		$existingItems = $this->existingItems;
 		$itemCount = $this->itemCount;
 		$itemIDs = $this->itemIDs;
-		
+		$errorItems = [];
+
 		$wp_class = new Wordpress_IDocs();
     	foreach( $fieldMapping as $mapping ) : 
     		if( $mapping['field_name'] == 'full_text_url' || $mapping['field_name'] == 'full_text_type' || $mapping['field_name'] == 'full_text_size' ) : 
@@ -648,8 +656,8 @@ class XML_IDocs_Query implements IDocs_Query_Interface {
         curl_setopt( $ch, CURLOPT_ENCODING, '' );
 		curl_setopt( $ch, CURLOPT_HEADER, 0);
         curl_setopt( $ch, CURLOPT_HTTPHEADER, array( 'Accept: application/xml' ) );
-		curl_setopt( $ch, CURLOPT_CONNECTTIMEOUT, 0 ); 
-        curl_setopt( $ch, CURLOPT_TIMEOUT, 30 ); 
+		curl_setopt( $ch, CURLOPT_CONNECTTIMEOUT, $this->connectionTimeout );
+        curl_setopt( $ch, CURLOPT_TIMEOUT, $this->timeout );
 		$response = curl_exec($ch);
 
 		curl_close($ch);
@@ -690,8 +698,8 @@ class XML_IDocs_Query implements IDocs_Query_Interface {
 			//curl_setopt( $curls[$i], CURLOPT_LOW_SPEED_TIME , 10 ); 
 			curl_setopt( $curls[$i], CURLOPT_USERAGENT, "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1; .NET CLR 1.1.4322)" );
         	curl_setopt( $curls[$i], CURLOPT_HTTPHEADER, array( 'Accept: application/xml' ) );
-			curl_setopt( $curls[$i], CURLOPT_CONNECTTIMEOUT, 15 ); 
-        	curl_setopt( $curls[$i], CURLOPT_TIMEOUT, 30 ); 
+			curl_setopt( $curls[$i], CURLOPT_CONNECTTIMEOUT, $this->connectionTimeout );
+        	curl_setopt( $curls[$i], CURLOPT_TIMEOUT, $this->timeout );
 			curl_multi_add_handle( $mh, $curls[$i] );
 		}
 		do {
@@ -736,8 +744,8 @@ class XML_IDocs_Query implements IDocs_Query_Interface {
 		$multi_curl = new MultiCurl();
 		$multi_curl->setHeader('Accept', 'application/xml');
 		$multi_curl->setConcurrency(50);
-		$multi_curl->setConnectTimeout(15);
-		$multi_curl->setTimeout(15);
+		$multi_curl->setConnectTimeout($this->connectionTimeout);
+		$multi_curl->setTimeout($this->connectionTimeout);
 		$multi_curl->setXmlDecoder(false);
 		$multi_curl->setOpt(CURLOPT_HEADER , FALSE);
 		$multi_curl->setOpt(CURLOPT_NOBODY , FALSE);
@@ -803,8 +811,8 @@ class XML_IDocs_Query implements IDocs_Query_Interface {
 		$multi_curl = new MultiCurl();
 		$multi_curl->setHeader('Accept', 'application/xml');
 		$multi_curl->setConcurrency(100);
-		$multi_curl->setConnectTimeout(15);
-		$multi_curl->setTimeout(15);
+		$multi_curl->setConnectTimeout($this->connectionTimeout);
+		$multi_curl->setTimeout($this->timeout);
 		$multi_curl->setXmlDecoder(false);
 		$insertedPostID = '';
 		$insertedPostIDs = [];
@@ -812,7 +820,7 @@ class XML_IDocs_Query implements IDocs_Query_Interface {
 		foreach( $requests as $key => $req ) {
    			$multi_curl->addGet($req['url']);
 		}
-		$multi_curl->success(function ($instance) use(&$insertedPostID) {
+		$multi_curl->success(function ($instance) use(&$insertedPostID, &$errorItems) {
     		$url = $instance->url;
     		$xmlContent = $instance->response;
 			$itemID = $this->findItemIDByURL($url);
@@ -823,7 +831,7 @@ class XML_IDocs_Query implements IDocs_Query_Interface {
 			endif;
 		});
 		$multi_curl->error(function ($instance) {
-			$itemID = $this->findItemIDByURL($url);
+			$itemID = $this->findItemIDByURL($instance->url);
 			$errorItems[] = $itemID;
 		});
 		$multi_curl->complete(function ($instance) use(&$insertedPostIDs, &$insertedPostID) {
