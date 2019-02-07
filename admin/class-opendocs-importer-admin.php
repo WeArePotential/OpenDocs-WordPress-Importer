@@ -212,12 +212,12 @@ class OpenDocs_Importer_Admin {
 	 *
 	 * @since 1.0.0
 	 */
-	public function getCollectionMetaDate() {
+	public function getCollectionMetaData() {
 		$collectionID = $_POST['data'];
 		$wp_class = new Wordpress_IDocs();
 		if( false === ( $collectionMetaData = get_transient( 'odoc_metadata' . $collectionID ) ) ) : 
 		$xmlAPIQuery = new XML_IDocs_Query( 'https://opendocs.ids.ac.uk/rest' );
-		$collectionMetaData = $xmlAPIQuery->getCollectionMetaDate($collectionID);
+		$collectionMetaData = $xmlAPIQuery->getCollectionMetaData($collectionID);
 		set_transient( 'odoc_metadata' . $collectionID, $collectionMetaData, 12 * HOUR_IN_SECONDS );
 		endif;
 		$collectionMetaData = get_transient( 'odoc_metadata' . $collectionID );
@@ -417,7 +417,7 @@ class OpenDocs_Importer_Admin {
 		$wp_class = new Wordpress_IDocs();
 		$fieldLabels = $wp_class->getFieldLabelsList();
 		if( false === ( $collectionMetaData = get_transient( 'odoc_metadata' . $collectionID ) ) ) : 
-		$collectionMetaData = $xmlAPIQuery->getCollectionMetaDate($collectionID);
+		$collectionMetaData = $xmlAPIQuery->getCollectionMetaData($collectionID);
 		set_transient( 'odoc_metadata' . $collectionID, $collectionMetaData, 12 * HOUR_IN_SECONDS );
 		endif;
 		$metaSelect = '<option value="not-selected">Select Open Docs field</option>';

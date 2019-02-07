@@ -586,7 +586,7 @@ class XML_IDocs_Query implements IDocs_Query_Interface {
 	*
  	* @return array Unique metadata keys from all items in the collection
 	*/
-	public function getCollectionMetaDate($collectionID) {
+	public function getCollectionMetaData($collectionID) {
 		$itemCount = $this->getItemCountInCollection($collectionID);
 		$itemIDs = $this->getItemIDsInCollection( array( array( $itemCount, $collectionID ) ) );
 		$metaData = [];
