@@ -21,7 +21,7 @@ class OpenDocs_Importer {
 	 *
 	 * @since    1.0.0
 	 * @access   protected
-	 * @var      OpenDocs_Importer_Loader    $loader    Maintains and registers all hooks for the plugin.
+	 * @var      OpenDocs_Importer_Loader $loader Maintains and registers all hooks for the plugin.
 	 */
 	protected $loader;
 
@@ -30,7 +30,7 @@ class OpenDocs_Importer {
 	 *
 	 * @since    1.0.0
 	 * @access   protected
-	 * @var      string    $plugin_name    The string used to uniquely identify this plugin.
+	 * @var      string $plugin_name The string used to uniquely identify this plugin.
 	 */
 	protected $plugin_name;
 
@@ -39,7 +39,7 @@ class OpenDocs_Importer {
 	 *
 	 * @since    1.0.0
 	 * @access   protected
-	 * @var      string    $version    The current version of the plugin.
+	 * @var      string $version The current version of the plugin.
 	 */
 	protected $version;
 
@@ -55,7 +55,7 @@ class OpenDocs_Importer {
 	public function __construct() {
 
 		$this->plugin_name = 'opendocs_importer';
-		$this->version = '1.0.0';
+		$this->version     = '1.0.0';
 
 		$this->load_dependencies();
 		$this->set_locale();
@@ -145,7 +145,7 @@ class OpenDocs_Importer {
 		$this->loader->add_action( 'odocsCronImport', $plugin_admin, 'cronImportCallback' );
 		$this->loader->add_action( 'odocsCRONImportPosts', $plugin_admin, 'cronImportPostsCallback', 10, 3 );
 		$this->loader->add_action( 'transition_post_status', $plugin_admin, 'updatePostPubDate', 10, 3 );
-		
+
 		$this->loader->add_action( 'wp_ajax_getSubCommunity', $plugin_admin, 'getSubCommunity' );
 		$this->loader->add_action( 'wp_ajax_getCollections', $plugin_admin, 'getCollections' );
 		$this->loader->add_action( 'wp_ajax_getACFields', $plugin_admin, 'getACFields' );

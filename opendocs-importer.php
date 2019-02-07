@@ -27,10 +27,12 @@ function my_add_weekly( $schedules ) {
 	// add a 'weekly' schedule to the existing set
 	$schedules['thirty'] = array(
 		'interval' => 1800,
-		'display' => __('30 Minutes')
+		'display'  => __( '30 Minutes' )
 	);
+
 	return $schedules;
 }
+
 add_filter( 'cron_schedules', 'my_add_weekly' );
 
 /**
@@ -79,4 +81,5 @@ function run_opendocs_importer() {
 	$plugin->run();
 
 }
+
 run_opendocs_importer();
