@@ -16,17 +16,19 @@
 <?php $xmlAPIQuery = new XML_IDocs_Query( 'https://opendocs.ids.ac.uk/rest' ); ?>
 <?php $wordpress_conn = new Wordpress_IDocs(); ?>
 <?php 
-	if( false === ( $topCommunities = get_transient( 'odoc_top_comm'  ) ) ) : 
+	//if( false === ( $topCommunities = get_transient( 'odoc_top_comm'  ) ) ) :
 	  $topCommunities = $xmlAPIQuery->getTopCommunities(); 
 	  if( ! empty( $topCommunities ) ) : 
 	  	set_transient( 'odoc_top_comm', $topCommunities, 24 * HOUR_IN_SECONDS );
 	  endif;
-	endif; 
+	//endif;
 ?>
 <div class="wrap">
-	<h1>OpenDocs Importer</h1>
+
+    <h1>OpenDocs Importer</h1>
+
 	<div class="community-wrap">
-		
+
 		<form action="#" class="opendocs-form form-wrap" data-page="1">
 			<h3>
 				Add New Job
@@ -42,9 +44,9 @@
 		<form action="#" class="opendocs-form form-wrap" data-page="2">
 			<div class="opendocs-communities">
 			<?php if( $topCommunities ) : ?>
-				<h2>Pick A Community, for <span class="job-name"></span></h2>
+				<h2>Pick an opendocs community, for <span class="job-name"></span></h2>
 				<?php foreach( $topCommunities as $community ) : ?>
-					<a href="#" data-comm-id="<?php echo $community->getID(); ?>" class="community toplevel" data-type="community" data-comm-name="<?php echo $community->getName(); ?>"><span class="toggle-icon"><i class="fa fa-plus" aria-hidden="true"></i></span><?php echo $community->getName(); ?> (<?php echo $community->getCount(); ?>)</a>
+					<a href="#" data-comm-id="<?php echo $community->getID(); ?>" class="community toplevel" data-type="community" data-comm-name="<?php echo $community->getName(); ?>" data-comm-handle="<?php echo $community->getHandle(); ?>"><span class="toggle-icon"><i class="fa fa-plus" aria-hidden="true"></i></span><?php echo $community->getName(); ?> (<?php echo $community->getCount(); ?>)</a>
 				<?php endforeach; ?>
 			<?php else : ?>
 				<h2>Error retrieving communities, reload</h2>
@@ -75,21 +77,17 @@
 					<div class="list-header">
 						<div class="select-all">
 							<label for="import-all">Import</label>
-							<input type="checkbox" id="import-all" name="check-all" data-type="import" checked class="check-all" /> 
+							<!--input type="checkbox" id="import-all" name="check-all" data-type="import" checked class="check-all" /-->
 						</div>
 						<div class="select-all">
 							<label id="ignore-all" for="ignore-all">Ignore</label>
-							<input type="checkbox" id="ignore-all" name="check-all" data-type="ignore" class="check-all" /> 
-						</div>
-						<div class="select-all">
-							<label for="reject-all">Reject</label>
-							<input type="checkbox" id="reject-all" name="check-all" data-type="reject" class="check-all" /> 
+							<!--input type="checkbox" id="ignore-all" name="check-all" data-type="ignore" class="check-all" /-->
 						</div>
 						<div class="header-title">
 							<a href="#">Title</a>
 						</div>
 						<div class="header-date">
-							<a href="#">Date</a>
+							<a href="#">Post</a>
 						</div>
 					</div>
 				</div>
@@ -162,17 +160,17 @@
 		
 		<div class="btn_post_mapping btn_wrap">
 			<button class="button-primary view_items_opendoc_btn opendoc_btn" type="button" name="btn_post_mapping">
-				<?php esc_attr_e( 'Proceed To Post Mapping' ); ?>
+				<?php esc_attr_e( 'Proceed to post mapping' ); ?>
 			</button>
 		</div>
 		<div class="btn_view_items btn_wrap">
 			<button class="button-primary opendoc_view_items_btn opendoc_btn" type="button" name="btn_view_items">
-				<?php esc_attr_e( 'View Items to Import' ); ?>
+				<?php esc_attr_e( 'View items to import' ); ?>
 			</button>
 		</div>
 		<div class="btn_import btn_wrap">
 			<button class="button-primary opendoc_btn" type="button" id="opendocs_import" name="opendocs_import">
-				<?php esc_attr_e( 'Save And Import' ); ?>
+				<?php esc_attr_e( 'Save and import' ); ?>
 			</button>
 		</div>
 		<div class="btn_prev btn_wrap">
@@ -195,36 +193,28 @@
 				<?php esc_attr_e( 'Cancel' ); ?>
 			</button>
 		</div>
-		<?php $rejectedItems = $wordpress_conn->getRejectedItems(); ?>
-		<?php if( $rejectedItems ) : ?>
-		<?php $items = ''; ?>
-		<?php foreach( $rejectedItems as $item ) : ?>
-		<?php $items .= $item . ', '; ?>
-		<?php endforeach; ?>
-		<input type="hidden" id="rejected_items" value="<?php echo trim( $items, ', ' ); ?>" />
-		<?php endif; ?>
+
 		<div class="ajax-loader">
 			<div class="loader-wrap">
 				<i class="fa fa-spinner fa-spin fa-3x fa-fw"></i>
 			</div>
 		</div>
-		<input type="hidden" id="edit_coll_id" value="" />
-		<input type="hidden" id="coll_item_count" value="" />
-		<input type="hidden" id="sel-coll-name" value="" />
+		<input type="text" id="edit_coll_id" value="" />
+		<input type="text" id="coll_item_count" value="" />
+		<input type="text" id="sel_coll_name" value="" />
+        <input type="yext" id="sel_coll_handle" value="" />
 	</div>
+
 	<div id="dialog" title="Info">
-  		<p>Collection already added as CRON job, to re-add, delete existing.</p>
+  		<p>Collection already added as CRON job. To re-add, delete existing.</p>
 	</div>
 	
 	<div id="validation-dialog" class="dialog-hide" title="Info">
   		<p>Please Enter a job name</p>
 	</div>
-	
-	<div id="toImportItemIDs" style="display: none;">
-		
-	</div>
-	<div id="existingItemIDs" style="display: none;"><?php echo implode(',', $wordpress_conn->getImportedItems()); ?></div>
-	
-	<div id="allitemIDs" style="display: none;"></div>
+   toImportItemIDs: <div id="toImportItemIDs" style="display: block;"></div>
+    existingItemIDs: <div id="existingItemIDs" style="display: block;"><?php echo implode(',', $wordpress_conn->getExistingItemIds()); ?></div>
+    ignoredItemIDs: <div id="ignoredItemIDs" style="display: block;"><?php echo implode(',', $wordpress_conn->getIgnoredItemIds()); ?></div>
+    allitemIDs: <div id="allitemIDs" style="display: none;"></div>
 	
 </div>

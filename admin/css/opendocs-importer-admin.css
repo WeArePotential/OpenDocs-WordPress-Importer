@@ -5,10 +5,10 @@
 .form-wrap {
 	display: none;
 }
-
-.field-names-wrap, .form-wrap.rejected {
+.form-wrap.field-names-wrap {
 	display: block;
 }
+
 
 .dialog-hide {
 	display: none;
@@ -440,8 +440,11 @@
 .items-list label {
 	display: inline-block;
 	float: left;
-	width: 81%;
-	margin: 0 0 0 1%;
+	width: 78%;
+	margin: 0 1% 0 1%;
+}
+.items-list .existing label {
+	opacity: 0.7;
 }
 
 .items-list p {
@@ -528,6 +531,11 @@
 	float: left;
 	text-align: center;
 }
+.item-row .item-date {
+	width: 10%;
+	float: left;
+	text-align: center;
+}
 
 .item-row .item-select:last-child {
 	margin-right: 1%;
@@ -542,7 +550,7 @@
 .imports-list .select-all {
 	font-size: 16px;
 	padding: 0;
-	width: 6%;
+	width: 8%;
 }
 
 .imports-list .header-col {
@@ -566,7 +574,10 @@
 	width: 6%;
 	text-align: center;
 }
-
+.item-delete a {
+	text-decoration: none;
+	width: 0;
+}
 .imports-list .item-row {
 	padding: 22px 0 22px 0;
 }
@@ -678,89 +689,6 @@
 .notify-email input {
 	font-size: 16px;
 	padding: 6px;
-}
-
-.rejected .header-title {
-	width: 78%;
-	margin: 0 0 0 0;
-}
-
-.rejected .header-title a {
-	padding: 22px 0 22px 2%;
-}
-
-.rejected .header-coll {
-    	float: left;
-    	font-size: 16px;
-	width: 40%;
-	margin: 0 0 0 0;
-}
-
-.rejected .header-date {
-	font-size: 16px;
-	float: left;
-	width: 16%;
-	margin: 0 0 0 0;
-}
-
-.rejected .select-all {
-	width: 6%;
-	margin: 0 0 0 0;
-	padding: 0 0 0 0;
-}
-
-.rejected .select-all a {
-	font-size: 16px;
-}
-
-.rejected .item-row {
-	font-size: 16px;
-    	float: left;
-    	width: 100%;
-    	padding: 12px 0 12px 0;
-    	box-sizing: border-box;
-}
-
-.rejected .item-check {
-	float: left;
-	width: 6%;
-	margin: 0 0 0 0;
-	text-align: center;
-}
-
-.rejected .item-name {
-	float: left;
-	width: 78%;
-	margin: 0 0 0 0;
-}
-
-.rejected .item-row p {
-	font-size: 16px;
-	font-style: normal;
-}
-
-.rejected .item-name p {
-	padding: 0 0 0 2%;
-}
-
-.rejected .coll-name {
-	float: left;
-	width: 40%;
-	margin: 0 0 0 0;
-}
-
-.rejected .coll-date {
-	float: left;
-	width: 16%;
-	margin: 0 0 0 0;
-}
-
-.rejected .item-row {
-	padding: 20px 0 20px 0;
-    	box-sizing: border-box;
-   	border-bottom: 1px solid #e1e1e1;
-   	border-left: 1px solid #e1e1e1;
-    	border-right: 1px solid #e1e1e1;
 }
 
 #tabs {

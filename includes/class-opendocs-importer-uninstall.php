@@ -19,17 +19,13 @@ class OpenDocs_Importer_Uninstall {
 	 */
 	public static function uninstall() {
 		global $wpdb;
-		$tableName = $wpdb->prefix . 'odocs';
+		$tableName = $wpdb->prefix . 'odocs3';
 		$sql = "DROP TABLE IF EXISTS $tableName;";
 		$wpdb->query($sql);
-		$tableName1 = $wpdb->prefix . 'odocs_iteminfo';
-		$sql1 = "DROP TABLE IF EXISTS $tableName1;";
-		$wpdb->query($sql1);
-		$tableName2 = $wpdb->prefix . 'odocs_field_names';
+		$tableName2 = $wpdb->prefix . 'odocs3_field_names';
 		$sql2 = "DROP TABLE IF EXISTS $tableName2;";
 		$wpdb->query($sql2);
 		
-		delete_option('opendocs_rejected');
 		delete_option('odocsActivated');
 	}
 

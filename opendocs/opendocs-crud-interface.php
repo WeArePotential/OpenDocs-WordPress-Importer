@@ -2,12 +2,13 @@
 
 interface IDocs_CRUD {
 
-    public function insertItem($items, $itemIDs, $isCRON = false);
+    public function insertItem($items, $itemIDs);
 	public function deleteItemPost($postID);
-    public function updateRejectedItems($itemIDs);
-    public function getRejectedItems();
-    public function deleteRejectedItem($itemID);
-	public function deleteAllRejectedItems();
+    public function addIgnoredItemIds($ignoredItemIDs);
+    public function getIgnoredItemIds();
+    public function deleteIgnoredItemId($itemID);
+	public function deleteAllIgnoredItemIds();
 	public function deleteCRONJob($cronID);
-	public function getImportedItems();
+	public function getExistingItems();
+	public function getExistingItemIds();
 }

@@ -15,8 +15,7 @@ A plugin to enable ad-hoc and periodic imports from the IDS OpenDocs institution
 Supports custom post types, custom taxonomies and custom fields.
 Supports periodic importing.
 Supports email notifications.
-Supports ability to (temporarily) ignore, (permanently) reject or import items.
-
+Supports ability to import or ignore items.
 
 == Installation ==
 
