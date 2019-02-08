@@ -256,7 +256,7 @@
                 data: data,
                 dataType: 'json',
                 success: function (response) {
-
+                    console.log('Rejected Items updated, code ' + response);
                 }
             });
 
@@ -490,6 +490,7 @@
         }
 
         function showImportList(items) {
+            console.log('showImportList: ',items );
             $.ajax({
                 url: ajaxurl,
                 type: "POST",

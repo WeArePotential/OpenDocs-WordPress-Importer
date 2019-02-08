@@ -273,6 +273,7 @@ class XML_IDocs_Query implements IDocs_Query_Interface {
  	* @return array List of items IDs
 	*/
 	public function getItemIDsInCollection($collectionIDs) {
+		error_log('getItemIDsInCollection: $$collectionIDs: '.print_r($collectionIDs,true));
 		$items = array();
 		$requests = array();
 		$itemDOMs = array();
