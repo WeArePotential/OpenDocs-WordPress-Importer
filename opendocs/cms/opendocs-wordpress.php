@@ -43,7 +43,7 @@ class Wordpress_IDocs implements IDocs_CRUD {
 			update_option( 'opendocs_rejected', $existingItems );
 			$isUpdated = get_option( 'opendocs_rejected' );
 		endif;
-
+		return $isUpdated;
 	}
 
 	/**
@@ -199,6 +199,8 @@ class Wordpress_IDocs implements IDocs_CRUD {
 
 		if ( $isCRON == true ) :
 			$cronID = $items->cronID;
+		else:
+			$cronID = -1;
 		endif;
 
 		if ( $isCRON == false ) :
@@ -349,14 +351,15 @@ class Wordpress_IDocs implements IDocs_CRUD {
 						$mergedArray[ $key ]['field_value'] = $splitted;
 					endif;
 				endif;
-				if ( strpos( $mergedArray[ $key ]['lang'], '{{<>}}' ) !== false ) :
-					$splitted = array_filter( explode( '{{<>}}', $mergedArray[ $key ]['lang'] ) );
-					if ( ! empty( $splitted ) ) :
-						$mergedArray[ $key ]['lang'] = $splitted;
+				if (isset($mergedArray[ $key ]['lang'])) :
+					if ( strpos( $mergedArray[ $key ]['lang'], '{{<>}}' ) !== false ) :
+						$splitted = array_filter( explode( '{{<>}}', $mergedArray[ $key ]['lang'] ) );
+						if ( ! empty( $splitted ) ) :
+							$mergedArray[ $key ]['lang'] = $splitted;
+						endif;
 					endif;
 				endif;
 			endforeach;
-
 
 			foreach ( $mergedArray as $key => $postMapping ) :
 				switch ( $key ) :

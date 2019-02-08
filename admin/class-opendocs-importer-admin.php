@@ -257,11 +257,14 @@ class OpenDocs_Importer_Admin {
 	 * @since 1.0.0
 	 */
 	public function updateRejectedItems() {
-		$itemIDs  = $_POST['data'];
-		$wp_class = new Wordpress_IDocs();
-		$result   = $wp_class->updateRejectedItems( $itemIDs );
-		echo $result;
-		wp_die();
+		$result = -1;
+		if (isset($_POST['data'])) :
+            $itemIDs  = $_POST['data'];
+		    $wp_class = new Wordpress_IDocs();
+		    $result   = $wp_class->updateRejectedItems( $itemIDs );
+        endif;
+        echo $result;
+        wp_die();
 	}
 
 	/**

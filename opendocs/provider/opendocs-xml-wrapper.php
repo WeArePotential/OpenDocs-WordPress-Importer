@@ -281,8 +281,10 @@ class XML_IDocs_Query implements IDocs_Query_Interface {
     		$totalPages = ceil( $itemsInCollectionCount / 100 );
     		for($i = 0;$i < $totalPages;$i++) {
 		        $requests[$i] = $this->APIUrl . '/collections/' . $collectionID[1] . '/items/?offset=' . $i * 100;
-			} 
-			if( $totalPages >= 2 ) : 
+			}
+		    error_log('getItemIDsInCollection: $requests: '.print_r($requests,true));
+
+		    if( $totalPages >= 2 ) :
 				$itemDOMs = $this->getXMLDomDocMulti( $requests, true );
 			else : 
 				$itemDOMs = $this->getXMLDomDocMulti( $requests );
@@ -315,9 +317,7 @@ class XML_IDocs_Query implements IDocs_Query_Interface {
  	* @return array List of inserted Post IDs (specific to Wordpress)
 	*/
     public function getItems($itemInfo, $mappingInfo, $isCRON) {
-    	
-		
-		
+
 		$fieldValuesList = [];
 		$requests = [];
 		$toInsertedMapping = [];
@@ -368,18 +368,20 @@ class XML_IDocs_Query implements IDocs_Query_Interface {
 			$requests[] = $this->APIUrl . '/items/' . $itemID;
 		endforeach;
 		$itemsDOMList = $this->getXMLDomDocMulti($requests);
-		for($i = 0;$i < count( $itemsDOMList );$i++) {
+		if ($itemsDOMList != null) :
+			for($i = 0;$i < count( $itemsDOMList );$i++) {
 			$itemNodes = $itemsDOMList[ $i ]->getElementsByTagName( 'item' );
-			foreach( $itemNodes as $item ) : 
-	        	$name = $item->getElementsByTagName( 'name' );
-	        	$name = $name->item(0)->nodeValue;
-				$id = $item->getElementsByTagName( 'id' );
-	        	$id = $id->item(0)->nodeValue;
-				$handleID = $item->getElementsByTagName( 'handle' );
-	        	$handleID = $handleID->item(0)->nodeValue;
-        		$results[$id] = array('name' => $name, 'handle' => 'http://opendocs.ids.ac.uk/opendocs/handle/' . $handleID );
-			endforeach;
-		}
+				foreach( $itemNodes as $item ) :
+					$name = $item->getElementsByTagName( 'name' );
+		            $name = $name->item(0)->nodeValue;
+					$id = $item->getElementsByTagName( 'id' );
+		            $id = $id->item(0)->nodeValue;
+					$handleID = $item->getElementsByTagName( 'handle' );
+		            $handleID = $handleID->item(0)->nodeValue;
+	                $results[$id] = array('name' => $name, 'handle' => 'http://opendocs.ids.ac.uk/opendocs/handle/' . $handleID );
+				endforeach;
+			}
+		endif;
 		return $results;
 	}
 	
@@ -589,11 +591,12 @@ class XML_IDocs_Query implements IDocs_Query_Interface {
 	public function getCollectionMetaData($collectionID) {
 		$itemCount = $this->getItemCountInCollection($collectionID);
 		$itemIDs = $this->getItemIDsInCollection( array( array( $itemCount, $collectionID ) ) );
+		error_log('getCollectionMetaData: $count: '.$itemCount.'$itemIds: '.print_r($itemIDs,true));
 		$metaData = [];
 		$requests = [];
 		
 		for($i = 0;$i < $itemCount;$i++) {
-		        $requests[$i] = $this->APIUrl . '/items/' . $itemIDs[0] . '/metadata/';
+	        $requests[$i] = $this->APIUrl . '/items/' . $itemIDs[0] . '/metadata/';
 		} 
 		$itemDOMs = $this->getXMLDomDocMulti( $requests );
 		
@@ -685,6 +688,11 @@ class XML_IDocs_Query implements IDocs_Query_Interface {
  	* @return array List of XML Domdocument items
 	*/
 	private function getXMLDomDocMulti( $requests ) {
+		error_log('Requests: getXMLDomDocMulti: '.count($requests) . ' - ' .print_r($requests,true));
+        if (count($requests) == 0) :
+            return null;
+        endif;
+
         $mh = curl_multi_init();
 		$result = array();
 		for( $i = 0; $i < count( $requests ); $i++ ) {
@@ -715,16 +723,26 @@ class XML_IDocs_Query implements IDocs_Query_Interface {
 				$execReturnValue = curl_multi_exec( $mh, $running );
 			} while ( $execReturnValue == CURLM_CALL_MULTI_PERFORM );
 		}
-		
+
 		foreach( $curls as $id => $c ) {
 			$xmlContent = curl_multi_getcontent( $c );
-			$doc = new DOMDocument();
-        	$doc->loadXML($xmlContent);
-			$result[] = $doc;
+			if ( $xmlContent ) :
+				$doc = new DOMDocument();
+				$doc->loadXML( $xmlContent );
+				$result[] = $doc;
+			endif;
 			curl_multi_remove_handle( $mh, $c );
 		}
 		curl_multi_close( $mh );
+
+		/* Alt method, calling Curl sequentially
+		foreach($requests as $request) {
+			$xmlContent = $this->getXMLDomDoc($request);
+			//error_log('Requests: getXMLDomDocMulti: '. ' - ' .print_r($xmlContent,true));
+			$result[] = $xmlContent;
+		}*/
 		return $result;
+
     }
 	
 	/**
