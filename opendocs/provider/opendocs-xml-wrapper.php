@@ -25,7 +25,7 @@ class XML_IDocs_Query implements IDocs_Query_Interface {
  	* @since 1.0.0
  	* @var string $APIUrl Stores API main URL.
  	*/
-    private $APIUrl = ''; // Stores API main URL
+    private $APIUrl = 'https://opendocs.ids.ac.uk/rest'; // Stores API main URL
 	/**
  	* Item Handle IDs.
  	*
@@ -106,9 +106,12 @@ class XML_IDocs_Query implements IDocs_Query_Interface {
 	private $cronID = 0;
 	private $timeout = 10; // Timeout in seconds
 	
-    public function __construct($APIUrl) {
-        $this->APIUrl = $APIUrl;
+    public function __construct( ) {
     }
+
+	public function setAPIUrl($url) {
+		$this->APIUrl = $url;
+	}
 
 	public function setTimeout($timeout) {
 		$this->timeout = $timeout;
@@ -320,7 +323,7 @@ class XML_IDocs_Query implements IDocs_Query_Interface {
  	*
  	* @param class $itemInfo Class containing item related properties: list of items to import, item handles list
 	* @param class $mappingInfo Class containing field mapping info: post type info, collection ID, field mapping array
-	* @param class $cronId if the current running job has a Job ID
+	* @param int $cronId if the current running job has a Job ID
 	*
  	* @return array List of inserted Post IDs (specific to Wordpress)
 	*/
@@ -398,9 +401,10 @@ class XML_IDocs_Query implements IDocs_Query_Interface {
  	* @return int inserted post ID (Wordpress ID)
 	*/
 	private function retrieveValues($itemID, $xmlContent) {
+
 		$fieldValues = [];
 		
-		// Load XML Content into DomDocument and iniatialize DOM XPath
+		// Load XML Content into DomDocument and initialize DOM XPath
 		$itemDom = new DOMDocument();
         $itemDom->loadXML($xmlContent);
     	$itemXPath = new DOMXPath($itemDom);
@@ -414,7 +418,8 @@ class XML_IDocs_Query implements IDocs_Query_Interface {
 		$itemIDs = $this->itemIDs;
 		
 		$wp_class = new Wordpress_IDocs();
-		
+		error_log('PETER: retrieveValues: '. print_r($fieldMapping,true));
+
 		//Create field mapping array and retrieve meta data. 
     	foreach( $fieldMapping as $mapping ) : 
     		if( $mapping[1] == 'full_text_url' || $mapping[1] == 'full_text_type' || $mapping[1] == 'full_text_size' ) : 
@@ -453,7 +458,7 @@ class XML_IDocs_Query implements IDocs_Query_Interface {
     	endforeach;
 		
 		// Create Wordpress Post with retrieved meta data. 
-		$insertedPostID = $wp_class->insertPost($itemID, $itemHandles[$itemID], $fieldValues, $postTypeInfo, $itemCount, $this->insertedItemIDs, $this->itemIDs, $this->itemHandles, $existingItems, $this->cronID );
+		$insertedPostID = $wp_class->insertPost($itemID, $itemHandles[$itemID], $fieldValues, $postTypeInfo, $itemCount, $this->insertedItemIDs, $this->itemIDs, $this->itemHandles, $this->cronID );
 		$this->insertedItemIDs[$itemID] = $insertedPostID;
 		return $insertedPostID;
 	}
@@ -473,6 +478,7 @@ class XML_IDocs_Query implements IDocs_Query_Interface {
 		$itemIDs = $this->itemIDs;
 
 		$wp_class = new Wordpress_IDocs();
+		error_log('PETER: retrieveValuesCRON: '. print_r($fieldMapping,true));
     	foreach( $fieldMapping as $mapping ) :
     		if( $mapping['field_name'] == 'full_text_url' || $mapping['field_name'] == 'full_text_type' || $mapping['field_name'] == 'full_text_size' ) :
 				if (!array_key_exists( 'field_type', $mapping )) :
@@ -503,7 +509,7 @@ class XML_IDocs_Query implements IDocs_Query_Interface {
 	    		endforeach;
     		endif;
     	endforeach;
-		$insertedPostID = $wp_class->insertPost($itemID, $itemHandles[$itemID], $fieldValues, $postTypeInfo, $itemCount, $this->insertedItemIDs, $this->itemIDs, $this->itemHandles, $existingItems, $this->cronID );
+    	$insertedPostID = $wp_class->insertPost($itemID, $itemHandles[$itemID], $fieldValues, $postTypeInfo, $itemCount, $this->insertedItemIDs, $this->itemIDs, $this->itemHandles, $this->cronID );
 		$this->insertedItemIDs[$itemID] = $insertedPostID;
 		return $insertedPostID;
 	}
@@ -658,13 +664,14 @@ class XML_IDocs_Query implements IDocs_Query_Interface {
         curl_setopt( $ch, CURLOPT_HTTPHEADER, array( 'Accept: application/xml' ) );
 		curl_setopt( $ch, CURLOPT_CONNECTTIMEOUT, 0 ); 
         curl_setopt( $ch, CURLOPT_TIMEOUT, $this->timeout );
-        error_log('PETER: '. $url);
+        error_log('PETER: getXMLDomDoc: '. $url);
 	    $response = curl_exec($ch);
 
 		curl_close($ch);
 		usleep(1000000);
 		if( $response !== false ) : 
         	$doc = new DOMDocument();
+			//error_log('PETER: getXMLDomDoc: $response: '. $response);
 			$doc->preserveWhiteSpace = false;
         	$doc->loadXML($response);
 			return $doc;
@@ -823,7 +830,7 @@ class XML_IDocs_Query implements IDocs_Query_Interface {
 		$insertedPostIDs = [];
 		$errorItemIDs = [];
 		foreach( $requests as $key => $req ) {
-			error_log('PETER: getXMLDomDocMultiValues: '.print_r($req['url']));
+			error_log('PETER: getXMLDomDocMultiValues: '.print_r($req['url'], true));
    			$multi_curl->addGet($req['url']);
 		}
 		$multi_curl->success(function ($instance) use(&$insertedPostID) {

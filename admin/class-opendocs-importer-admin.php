@@ -128,11 +128,11 @@ class OpenDocs_Importer_Admin {
 	 */
 	public function getSubCommunity() {
 		$communityID = $_POST['data'];
-		if ( false === ( $subCommunities = get_transient( 'odocsCommunities' . $communityID ) ) ) :
-			$xmlAPIQuery = new XML_IDocs_Query( 'https://opendocs.ids.ac.uk/rest' );
+		if ( false === ( $subCommunities = get_transient( 'odocs_communities_' . $communityID ) ) ) :
+			$xmlAPIQuery = new XML_IDocs_Query();
 			$xmlAPIQuery->setTimeout( 300 );
 			$subCommunities = $xmlAPIQuery->getSubCommunities( $communityID );
-			set_transient( 'odocsCommunities' . $communityID, $subCommunities, 12 * HOUR_IN_SECONDS );
+			set_transient( 'odocs_communities_' . $communityID, $subCommunities, 12 * HOUR_IN_SECONDS );
 		endif;
 		echo json_encode( $subCommunities );
 		wp_die();
@@ -145,10 +145,10 @@ class OpenDocs_Importer_Admin {
 	 */
 	public function getCollections() {
 		$communityID = $_POST['data'];
-		if ( false === ( $collections = get_transient( 'odocsCollections' . $communityID ) ) ) :
-			$xmlAPIQuery = new XML_IDocs_Query( 'https://opendocs.ids.ac.uk/rest' );
+		if ( false === ( $collections = get_transient( 'odocs_collections_' . $communityID ) ) ) :
+			$xmlAPIQuery = new XML_IDocs_Query();
 			$collections = $xmlAPIQuery->getCollectionsByCommunity( $communityID );
-			set_transient( 'odocsCollections' . $communityID, $collections, 12 * HOUR_IN_SECONDS );
+			set_transient( 'odocs_collections_' . $communityID, $collections, 12 * HOUR_IN_SECONDS );
 		endif;
 		echo json_encode( $collections );
 		wp_die();
@@ -161,7 +161,7 @@ class OpenDocs_Importer_Admin {
 	 */
 	public function getItemsInCollection() {
 		$collectionID = $_POST['data'];
-		$xmlAPIQuery  = new XML_IDocs_Query( 'https://opendocs.ids.ac.uk/rest' );
+		$xmlAPIQuery  = new XML_IDocs_Query();
 		$xmlAPIQuery->setTimeout( 300 );
 		//error_log( 'PETER: Get items from collection id: ' . print_r( $collectionID, true ) );
 		$items = $xmlAPIQuery->getItemsInCollection( $collectionID );
@@ -238,14 +238,21 @@ class OpenDocs_Importer_Admin {
 	 */
 	public function getCollectionMetaData() {
 		$collectionID = $_POST['data'];
-		$wp_class     = new Wordpress_IDocs();
-		if ( false === ( $collectionMetaData = get_transient( 'odoc_metadata' . $collectionID ) ) ) :
-			$xmlAPIQuery        = new XML_IDocs_Query( 'https://opendocs.ids.ac.uk/rest' );
-			$collectionMetaData = $xmlAPIQuery->getCollectionMetaData( $collectionID );
-			set_transient( 'odoc_metadata' . $collectionID, $collectionMetaData, 12 * HOUR_IN_SECONDS );
+		$reload = false;
+		if ( false === ( $collectionMetaData = get_transient( 'odocs_metadata_' . $collectionID ) ) ) :
+            $reload = true;
+		else:
+            if ($collectionMetaData == '') :
+                $reload = true;
+            endif;
 		endif;
-		$collectionMetaData = get_transient( 'odoc_metadata' . $collectionID );
 
+		if ($reload) :
+			$wp_class     = new Wordpress_IDocs();
+			$xmlAPIQuery        = new XML_IDocs_Query();
+			$collectionMetaData = $xmlAPIQuery->getCollectionMetaData( $collectionID );
+			set_transient( 'odocs_metadata_' . $collectionID, $collectionMetaData, 12 * HOUR_IN_SECONDS );
+		endif;
 		echo json_encode( $collectionMetaData );
 		wp_die();
 	}
@@ -436,13 +443,13 @@ class OpenDocs_Importer_Admin {
 		$cronID       = $cleandata->cronID;
 		$formTitle    = '';
 		$jobField     = '';
-		$xmlAPIQuery  = new XML_IDocs_Query( 'https://opendocs.ids.ac.uk/rest' );
+		$xmlAPIQuery  = new XML_IDocs_Query();
 		$wp_class     = new Wordpress_IDocs();
 		$fieldLabels  = $wp_class->getFieldLabelsList();
-		//if ( false === ( $collectionMetaData = get_transient( 'odoc_metadata' . $collectionID ) ) ) :
+		if ( false === ( $collectionMetaData = get_transient( 'odocs_metadata_' . $collectionID ) ) ) :
 			$collectionMetaData = $xmlAPIQuery->getCollectionMetaData( $collectionID );
-			//set_transient( 'odoc_metadata' . $collectionID, $collectionMetaData, 12 * HOUR_IN_SECONDS );
-		//endif;
+			set_transient( 'odocs_metadata_' . $collectionID, $collectionMetaData, 12 * HOUR_IN_SECONDS );
+		endif;
 		$metaSelect = '<option value="not-selected">Select Open Docs field</option>';
 		$metaSelect .= '<option value="full_text_url">Full text url</option>';
 		$metaSelect .= '<option value="full_text_type">Full text type</option>';
@@ -459,15 +466,13 @@ class OpenDocs_Importer_Admin {
 			$collectionField  = '';
 		else :
 			$formTitle = 'Selected Post Type';
-			$jobField  = '<p class="job-field"><label for="job_name">Job Name</label><input type="text" name="job_name" /></p>';
+			$jobField  = '<p class="job-field"><label for="job-name">Job Name</label><input type="text" name="job-name" /></p>';
 			$collectionField  = '<p class="collection-field"><label for="collection_name" style="display: inline;">Collection: </label><span id="collection_name" ></span></p>';
 		endif;
 		$result = '<div class="field-mapping" data-collectionID="' . $collectionID . '">
 			<form class="post_sel">' .
 		          $jobField . $collectionField
-		          . '<div class="post_sel_wrap"><h3 class="field-mapping-title">' .
-		          $formTitle
-		          . '</h3>' . OpenDocs_Utils::getPostTypes() . '</form></div>
+		          . '<div class="post_sel_wrap"><h3 class="field-mapping-title">' . $formTitle . '</h3>' . OpenDocs_Utils::getPostTypes() . '</form></div>
 			<form class="acf-mapping" data-page="3">
 				<h3>
 					Custom Field Mapping
@@ -716,7 +721,7 @@ class OpenDocs_Importer_Admin {
 	public function cronImportCallback() {
 		$wp_class       = new Wordpress_IDocs();
 		$cron_schedules = $wp_class->getCRONSchedule();
-		$xmlAPIQuery    = new XML_IDocs_Query( 'https://opendocs.ids.ac.uk/rest' );
+		$xmlAPIQuery    = new XML_IDocs_Query();
 		$cronCondition  = 0;
 		foreach ( $cron_schedules as $cron_schedule ) :
 			$canExcute = 0;
@@ -793,7 +798,7 @@ class OpenDocs_Importer_Admin {
 	 */
 	public function admin_odocs_cron_callback() {
 		$wp_class    = new Wordpress_IDocs();
-		$xmlAPIQuery = new XML_IDocs_Query( 'https://opendocs.ids.ac.uk/rest' );
+		$xmlAPIQuery = new XML_IDocs_Query();
 		?>
 		<?php $cronImportList = $wp_class->getCRONImports(); ?>
         <form class="form-wrap" data-page="1">
@@ -801,9 +806,6 @@ class OpenDocs_Importer_Admin {
             <div class="imports-list items-list edit-list">
 				<?php if ( $cronImportList ) : ?>
                     <div class="list-header">
-                        <div class="select-all">
-                            &nbsp;
-                        </div>
                         <div class="header-title">
                             <a href="#">Name</a>
                         </div>
@@ -822,8 +824,15 @@ class OpenDocs_Importer_Admin {
                         <div class="header-col header-frequency">
                             <a href="#">Frequency</a>
                         </div>
+                        <div class="header-col select-all">
+                            Delete
+                        </div>
+
                     </div>
-					<?php foreach ( $cronImportList as $import ) :
+
+
+
+                    <?php foreach ( $cronImportList as $import ) :
 						$importOptions = json_decode( $import->options );
 						$frequency = '';
 						$wpCoreSelect = '<select style="display: none;">';
@@ -866,9 +875,6 @@ class OpenDocs_Importer_Admin {
 							$frequency = 'Every ' . $weekDays[ $importOptions->when[1] ] . ' at ' . $importOptions->when[0];
 						endif; ?>
                         <div class="item-row">
-                            <div class="item-delete"><a href="#" data-cronid="<?php echo $import->id; ?>"
-                                                        data-collid="<?php echo $import->collectionID; ?>"
-                                                        data-action=""><i class="fa fa-times" aria-hidden="true"></i><span style="visibility:hidden">Delete</span></a></div>
                             <div class="row coll-name"><a href="#" class="edit-job"
                                                           data-cronid="<?php echo $import->id; ?>"
                                                           data-collectionid="<?php echo $import->collectionID; ?>"
@@ -891,9 +897,14 @@ class OpenDocs_Importer_Admin {
                                  data-frequency="<?php echo $importOptions->frequency; ?>"
                                  data-import-at="<?php echo $importOptions->when[0]; ?>"
                                  data-import-day="<?php echo $importOptions->when[1]; ?>"><?php echo $frequency; ?></div>
+                            <div class="row item-delete"><a href="#" data-cronid="<?php echo $import->id; ?>"
+                                                        data-collid="<?php echo $import->collectionID; ?>"
+                                                        data-action=""><i class="fa fa-times" aria-hidden="true"></i><span style="visibility:hidden">Delete</span></a></div>
                             <div class="job-post-mapping"><?php echo $import->fieldMappings; ?></div>
                             <div class="job-wp-fields"><?php echo $wpCoreSelect; ?></div>
                         </div>
+
+
 						<?php
 						$wp_class          = new Wordpress_IDocs();
 						$importedItemCount = count( $wp_class->viewImportedItemsInCollection( $import->id ) );

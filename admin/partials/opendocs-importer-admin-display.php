@@ -13,15 +13,15 @@
  */
 ?>
 
-<?php $xmlAPIQuery = new XML_IDocs_Query( 'https://opendocs.ids.ac.uk/rest' ); ?>
+<?php $xmlAPIQuery = new XML_IDocs_Query(); ?>
 <?php $wordpress_conn = new Wordpress_IDocs(); ?>
 <?php 
-	//if( false === ( $topCommunities = get_transient( 'odoc_top_comm'  ) ) ) :
+	if( false === ( $topCommunities = get_transient( 'odocs_top_communities'  ) ) ) :
 	  $topCommunities = $xmlAPIQuery->getTopCommunities(); 
 	  if( ! empty( $topCommunities ) ) : 
-	  	set_transient( 'odoc_top_comm', $topCommunities, 24 * HOUR_IN_SECONDS );
+	  	set_transient( 'odocs_top_communities', $topCommunities, 24 * HOUR_IN_SECONDS );
 	  endif;
-	//endif;
+	endif;
 ?>
 <div class="wrap">
 
@@ -42,17 +42,22 @@
 		<?php echo $this->admin_odocs_cron_callback(); ?>	
 		
 		<form action="#" class="opendocs-form form-wrap" data-page="2">
-			<div class="opendocs-communities">
-			<?php if( $topCommunities ) : ?>
-				<h2>Pick an opendocs community, for <span class="job-name"></span></h2>
-				<?php foreach( $topCommunities as $community ) : ?>
-					<a href="#" data-comm-id="<?php echo $community->getID(); ?>" class="community toplevel" data-type="community" data-comm-name="<?php echo $community->getName(); ?>" data-comm-handle="<?php echo $community->getHandle(); ?>"><span class="toggle-icon"><i class="fa fa-plus" aria-hidden="true"></i></span><?php echo $community->getName(); ?> (<?php echo $community->getCount(); ?>)</a>
-				<?php endforeach; ?>
-			<?php else : ?>
-				<h2>Error retrieving communities, reload</h2>
-			<?php endif; ?>
+
+            <div class="opendocs-communities">
+                <h3>
+                    OpenDocs communities and collections
+                </h3>
+                <?php if( $topCommunities ) : ?>
+                    <h2>Pick an opendocs community for <span class="job-name"></span></h2>
+                    <?php foreach( $topCommunities as $community ) : ?>
+                        <a href="#" data-comm-id="<?php echo $community->getID(); ?>" class="community toplevel" data-type="community" data-comm-name="<?php echo $community->getName(); ?>" data-comm-handle="<?php echo $community->getHandle(); ?>"><span class="toggle-icon"><i class="fa fa-plus" aria-hidden="true"></i></span><?php echo $community->getName(); ?> (<?php echo $community->getCount(); ?>)</a>
+                    <?php endforeach; ?>
+			    <?php else : ?>
+				    <h2>Error retrieving communities, reload</h2>
+			    <?php endif; ?>
 			</div>
-			<div class="sel-collections">
+
+            <div class="sel-collections">
 				<h2>Selected Collections</h2>
 				<select size="10">
 				
@@ -136,7 +141,7 @@
 			</form>
 		</div>
 		
-		<div class="form-wrap progress-wrap">
+		<div class="progress-wrap">
 			<form class="publish-status">
 				<h3>
 					Import Progress
@@ -199,10 +204,25 @@
 				<i class="fa fa-spinner fa-spin fa-3x fa-fw"></i>
 			</div>
 		</div>
-		<input type="text" id="edit_coll_id" value="" />
-		<input type="text" id="coll_item_count" value="" />
-		<input type="text" id="sel_coll_name" value="" />
-        <input type="yext" id="sel_coll_handle" value="" />
+
+
+		<div id="data-form">
+            <h3>Data</h3>
+            <form >
+                job_id:    <input type="text" id="job_id" value="" /><br/>
+                job_name:    <input type="text" id="job_name" value="" /><br/>
+                edit_coll_id:       <input type="text" id="edit_coll_id" value="" /><br/>
+                coll_item_count:    <input type="text" id="coll_item_count" value="" /><br/>
+                sel_coll_name:      <input type="text" id="sel_coll_name" value="" /><br/>
+                sel_coll_handle:    <input type="text" id="sel_coll_handle" value="" /><br/>
+
+                toImportItemIDs: <input type="text" id="toImportItemIDs"/><br/>
+                existingItemIDs: <input type="text" id="existingItemIDs" value="<?php echo implode(',', $wordpress_conn->getExistingItemIds()); ?>"/><br/>
+                ignoredItemIDs:  <input type="text" id="ignoredItemIDs" value="<?php echo implode(',', $wordpress_conn->getIgnoredItemIds()); ?>"/><br/>
+                allitemIDs:      <input type="text" id="allitemIDs"/><br/>
+            </form>
+        </div>
+
 	</div>
 
 	<div id="dialog" title="Info">
@@ -212,9 +232,5 @@
 	<div id="validation-dialog" class="dialog-hide" title="Info">
   		<p>Please Enter a job name</p>
 	</div>
-   toImportItemIDs: <div id="toImportItemIDs" style="display: block;"></div>
-    existingItemIDs: <div id="existingItemIDs" style="display: block;"><?php echo implode(',', $wordpress_conn->getExistingItemIds()); ?></div>
-    ignoredItemIDs: <div id="ignoredItemIDs" style="display: block;"><?php echo implode(',', $wordpress_conn->getIgnoredItemIds()); ?></div>
-    allitemIDs: <div id="allitemIDs" style="display: none;"></div>
-	
+
 </div>

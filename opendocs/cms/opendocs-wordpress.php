@@ -45,7 +45,6 @@ class Wordpress_IDocs implements IDocs_CRUD {
 	 * @return array List of ignored item IDs
 	 */
 	public function getIgnoredItemIds() {
-		$ignoredItemIds = array();
 		return get_option( 'opendocs_ignored', array());
 	}
 
@@ -153,7 +152,7 @@ class Wordpress_IDocs implements IDocs_CRUD {
 		$itemList        = [];
 		$postTypeInfo    = $items->postType[0];
 		$toInsertMapping = [];
-		$cronID          = $items->cronID;
+		$cronID          = (property_exists($items, 'cronID') ? $items->cronID : 0);
 		$hasFileURL      = 0;
 		foreach ( $itemIDs as $item ) :
 			$itemList[] = $item->id;
@@ -184,12 +183,12 @@ class Wordpress_IDocs implements IDocs_CRUD {
 					$fieldMapping->field_id,
 					$fieldMapping->value,
 					$fieldMapping->collectionID,
-					$fieldMapping->acf_name
+					(property_exists($fieldMapping, 'acf_name') ? $fieldMapping->acf_name : ''),
 				);
 			endif;
 		endforeach;
 
-		$itemObj = new XML_IDocs_Query( 'https://opendocs.ids.ac.uk/rest' );
+		$itemObj = new XML_IDocs_Query();
 		$itemObj->setTimeout( 300 );
 		$itemHandleList = $itemObj->getItemHandle( $itemList );
 
@@ -214,7 +213,7 @@ class Wordpress_IDocs implements IDocs_CRUD {
 					);
 				endif;
 			else :
-				error_log('PETER: fieldMapping: '. print_r($fieldMapping,true));
+				//error_log('PETER: fieldMapping: '. print_r($fieldMapping,true));
 				$toInsertMapping[] = array(
 					'field_id'     => $fieldMapping[0],
 					'field_name'   => $fieldMapping[1],
@@ -234,7 +233,7 @@ class Wordpress_IDocs implements IDocs_CRUD {
 			'itemHandles'   => $itemHandleList,
 			'existingItems' => $this->getExistingItems()
 		);
-		$mappingInfo = array( 'postTypeInfo' => $postTypeInfo, 'collID' => $collID, 'mappingArray' => $mappingArray );
+		$mappingInfo = array( 'postTypeInfo' => $postTypeInfo, 'collID' => $collID, 'mappingArray' => $toInsertMapping );
 		$insertedPostIDs = $itemObj->getItems( (object) $itemInfo, (object) $mappingInfo, $cronID);
 		return $insertedPostIDs;
 
@@ -260,8 +259,8 @@ class Wordpress_IDocs implements IDocs_CRUD {
 	 *
 	 * @return int inserted Wordpress Post ID
 	 */
-	public function insertPost( $itemID, $itemHandle, $fieldValues, $postTypeInfo, $itemCount, $importedItems, $itemIDs, $itemHandles, $cronID ) {
-		if ( ! empty( $fieldValues ) ) :
+		public function insertPost( $itemID, $itemHandle, $fieldValues, $postTypeInfo, $itemCount, $importedItems, $itemIDs, $itemHandles, $cronID ) {
+			if ( ! empty( $fieldValues ) ) :
 
 			$mergedArray   = [];
 			$hasFileURL    = 0;
@@ -370,15 +369,16 @@ class Wordpress_IDocs implements IDocs_CRUD {
 			endif;
 
 			if ($cronID == 0) {
-				$cronID = $this->insertCollectionInDB($postTypeInfo, $importedItems, $hasFileURL);
+				error_log('PETER: insertPost: Don\'t need to insertCollectionInDB: '. $cronID);
+				//$cronID = $this->insertCollectionInDB($postTypeInfo, $importedItems, $hasFileURL);
 			}
 
 			$this->insertItemInfoInDB( $itemID, $cronID );
 			$postMetaUpdate = $this->updatePostFields( $insertedPostID, $itemHandle, $mergedArray, $hasFileURL );
 
 			if ( $itemCount == $importedCount ) :
-				if ( $hasFileURL === 1 ) :
-					$itemObj = new XML_IDocs_Query( 'https://opendocs.ids.ac.uk/rest' );
+				if ( $hasFileURL == 1 ) :
+					$itemObj = new XML_IDocs_Query();
 					$itemObj->setTimeout( 300 );
 					$downloadFile = $itemObj->getItemFiles( $importedItems, $fieldValues, $itemIDs, $itemHandles );
 				endif;
@@ -408,7 +408,7 @@ class Wordpress_IDocs implements IDocs_CRUD {
 		global $wpdb;
 		$isUpdated            = 0;
 		$insertedItemPosts    = [];
-		$itemObj              = new XML_IDocs_Query( 'https://opendocs.ids.ac.uk/rest' );
+		$itemObj              = new XML_IDocs_Query();
 		$postMetaArray        = [];
 		$postMetaFormatString = [];
 		$repeaterCounter      = 0;
@@ -561,7 +561,7 @@ class Wordpress_IDocs implements IDocs_CRUD {
 			'postStatus'   => $postTypeInfo->postStatus,
 			'frequency'    => $postTypeInfo->frequency,
 			'when'         => $postTypeInfo->when,
-			'hasFileURL'   => $hasFileURL
+			'hasFileURL'   => $hasFileURL,
 		);
 		$mappingArray = json_encode( $fieldMappings );
 		$options      = json_encode( $options );
@@ -695,6 +695,9 @@ class Wordpress_IDocs implements IDocs_CRUD {
 			$mappingArray = array();
 			$existingList = [];
 			$postIDs      = [];
+			$collectionID      = $postType->collectionID;
+			$collectionName    = $postType->collectionName;
+			$collectionHandle    = $postType->collectionHandle;
 			$options      = array(
 				'postType'    => $postType->postType,
 				'postStatus'  => $postType->postStatus,
@@ -733,6 +736,26 @@ class Wordpress_IDocs implements IDocs_CRUD {
 					)
 				);
 				$cronID    = $isCollectionInDB->id;
+			else:
+				$isUpdated = $wpdb->insert( $tableName,
+					array(
+						'jobName'       => $jobName,
+						'fieldMappings' => $mappingArray,
+						'options'       => $options,
+						'collectionID'  => $collectionID,
+						'collectionName'  => $collectionName,
+						'collectionHandle' => $collectionHandle,
+					),
+					array(
+						'%s',
+						'%s',
+						'%s',
+						'%d',
+						'%s',
+						'%s',
+					)
+				);
+				$cronID    = $wpdb->insert_id;
 			endif;
 		endforeach;
 
@@ -871,14 +894,15 @@ class Wordpress_IDocs implements IDocs_CRUD {
 	public function getPostIDsByItemIDs( $items ) {
 		$postObj      = [];
 		$postTypeList = OpenDocs_Utils::getPostTypesList();
+		$existingItemIDs = $this->getExistingItemIds();
 		foreach ( $items as $item ) :
-			$existingItemIDs = $item->existingItemIDs;
-			if ( ! is_array( $existingItemIDs ) ) :
-				$existingItemIDs = array();
-			endif;
 			$toImportItemIDs    = array();
 			foreach($item->itemIDs as $item) {
-				$toImportItemIDs[] = $item->id;
+				if (is_object($item)) {
+					$toImportItemIDs[] = $item->id;
+				} else {
+					$toImportItemIDs[] = $item;
+				}
 			}
 			//error_log('PETER: Compare array diff: '.print_r($toImportItemIDs,true). ' and ' . print_r($existingItemIDs,true)  );
 
@@ -924,7 +948,8 @@ class Wordpress_IDocs implements IDocs_CRUD {
 					)
 				)
 			) );
-			while ( $existingItemLoop->have_posts() ) : $existingItemLoop->the_post();
+			while ( $existingItemLoop->have_posts() ) :
+				$existingItemLoop->the_post();
 				$postObj[] = array(
 					'itemID'       => (int) get_post_meta( get_the_ID(), 'odocs_item_id', true ),
 					'existing'     => 1,
@@ -1017,7 +1042,6 @@ class Wordpress_IDocs implements IDocs_CRUD {
 		global $wpdb;
 		$tableName   = $wpdb->prefix . 'postmeta';
 		$result = $wpdb->get_results( "SELECT post_id, meta_value FROM $tableName WHERE meta_key = 'odocs_item_id'" );
-		//error_log('PETER: getExistingItems: '.print_r($result,true));
 		foreach($result as $row) {
 			if (get_post_status($row->post_id ) != false) { // Might be in metadata, but no longer existing!
 				$existingItems[$row->meta_value] = $row->post_id;

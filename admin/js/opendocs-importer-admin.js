@@ -1,4 +1,5 @@
 (function ($) {
+    console.log('v1.1');
     //Declare global variables
     'use strict';
     var currentPage = 1; // Holds Current page number
@@ -76,19 +77,20 @@
             if ($(".publish-status").data('loaded') !== 'yes') {
                 if ($(".opendocs-communities a.community").hasClass("selected-collection")) {
                     itemsCount = $(".opendocs-communities a.community.selected-collection").data("count");
-                    collectionIDs.push(new Array(itemsCount, $(".opendocs-communities a.community.selected-collection").data('collid'), $("#existingItemIDs").html().split(',')));
+                    collectionIDs.push(new Array(itemsCount, $(".opendocs-communities a.community.selected-collection").data('collid'), $("#existingItemIDs").val().split(',')));
                 } else {
                     itemsCount = $("#coll_item_count").val();
-                    collectionIDs.push(new Array(itemsCount, $("#edit_coll_id").val(), $("#existingItemIDs").html().split(',')));
+                    collectionIDs.push(new Array(itemsCount, $("#edit_coll_id").val(), $("#existingItemIDs").val().split(',')));
                 }
 
                 // Save the current job info.
                 var cronid = $('#tab-0').data('cron-id');
                 console.log('PETER: Import for cron id '+ cronid);
-                var jobName = $(".field-mapping input[name='job_name']").val();
-                console.log('PETER: Jobname = '+jobName);
-                var dataToImport = buildSaveData(cronid, jobName);
-                var ajaxdata = {'action': 'updateImportJob', 'data': JSON.stringify(dataToImport)};
+                var dataToImport = buildSaveData(cronid);
+                var ajaxdata = {
+                    'action': 'updateImportJob',
+                    'data': JSON.stringify(dataToImport),
+                };
 
                 var promise = $.ajax({
                     url: ajaxurl,
@@ -132,7 +134,7 @@
                             itemsArray.push([element.id, element.name, element.date, element.existing, element.post_id, element.post_link]);
                             allItemsInColl.push(element.id);
                         });
-                        $("#allitemIDs").html(allItemsInColl.toString());
+                        $("#allitemIDs").val(allItemsInColl.toString());
                         var perPage = 100;
                         itemsCount = parseInt(itemsArray.length);
                         var totalPages = Math.ceil(parseInt(itemsArray.length) / perPage); // Get total pages for pagination
@@ -158,7 +160,8 @@
                                     status = "ignore";
                                 }
                                 // Ignore if previously set to ignore
-                                if ($('#ignoredItemIDs').html().split(',').includes(tempArray[j][0])) {
+
+                                if ($('#ignoredItemIDs').val().split(',').includes(tempArray[j][0])) {
                                     status = "ignore"
                                 }
                                 var $row = '<div class="item-row' + (bExisting ? ' existing ' : '') + '" data-existing="' + bExisting + '">';
@@ -166,7 +169,7 @@
                                 $checkboxes = $checkboxes + '<div class="item-select"><input type="checkbox" name="item-' + tempArray[j][0] + '" value="' + tempArray[j][0] + '" id="ignore' + tempArray[j][0]  + '"' + ((status == "ignore") ? ' checked ' : '') + (bExisting ? ' disabled readonly="readonly" ' : '') +  '/></div>';
                                 $row = $row + $checkboxes + '<label for="' + tempArray[j][0] + '">' + tempArray[j][1] + '</label>';
                                 if (bExisting) {
-                                    $row = $row +'<div class="item-date"><a href="' + tempArray[j][5] + '">View post</a></div>';
+                                    $row = $row +'<div class="item-date"><a href="' + tempArray[j][5] + '" target="_blank">View post</a></div>';
                                 } else {
                                     $row = $row + '<div class="item-date"></div>';
                                 }
@@ -260,11 +263,13 @@
             var newIgnoredItemIds = [];
             var newIgnoredItemCount = 0;
 
-                $(".items-list:not(.imported-list) .item-row").each(function (index) {
+            $(".items-list:not(.imported-list) .item-row").each(function (index) {
                 if ($(this).find(".item-select").eq(1).find("input:checkbox").is(':checked')) {
                     ignoreItemIDs.push($(this).find(".item-select").eq(0).find("input:checkbox").val());
                 }
             });
+
+            $(".progress-wrap").show();
 
             // Set all the ignoreItemIDs so that when we call the update, it doesn't include them
             console.log('PETER: ignoreItemIDs:', ignoreItemIDs);
@@ -341,6 +346,7 @@
             });
 
             addIgnoredItems(newIgnoredItemIds);
+            newIgnoredItemCount = newIgnoredItemIds.length;
 
             toImportPostItemIDs.push({
                 'postType': $(".field-mapping .post_types").val(),
@@ -348,9 +354,7 @@
                 'itemIDs': toImportItemIDs,
                 'newIgnoredItems': newIgnoredItemIds
             });
-
-            $("#toImportItemIDs").html(JSON.stringify(toImportPostItemIDs));
-            newIgnoredItemCount = newIgnoredItemIds.length;
+            $("#toImportItemIDs").val(JSON.stringify(toImportPostItemIDs));
 
             console.log("To import " + toImportCount + " of: " + totalRecords + ", skipping ignored: " + newIgnoredItemCount);
 
@@ -362,14 +366,13 @@
                     'postMapping': postMapping,
                     'itemID': toImportIDs,
                     'newIgnoredItemIDs': newIgnoredItemIds,
-                    'allItems': $("#allitemIDs").html()
+                    'allItems': $("#allitemIDs").val()
                 };
                 var newItemCount = toImportCount;
                 var datatoSend = {
                     'action': 'insertItems',
                     'data': JSON.stringify(dataToImport)
                 };
-
                 $.ajax({
                     url: ajaxurl,
                     type: "POST",
@@ -378,7 +381,7 @@
                     timeout: 0,
                     beforeSend: function () {
                         console.log('PETER: Prepare to store to imported items');
-                        //$(".form-wrap").hide();
+                        $(".form-wrap").hide();
                         $(".progress-wrap").show();
                         $(".community-wrap .btn_wrap").hide();
                     },
@@ -402,14 +405,12 @@
                     }
                 });
                 var bEmpty = false;
-                var finishMsg = '<p>Import job starting<br />...</p>';
             } else {
                 var bEmpty = true;
-                var finishMsg = '<p>Empty import job<br />No items to import.</p>';
             }
 
             if (bEmpty) {
-                $('<div id="finish-job" title="Info">' + finishMsg + '</div>').dialog({
+                $('<div id="finish-job" title="Info"><p>Empty import job<br />No items to import.</p></div>').dialog({
                     modal: true,
                     buttons: [{
                         text: "Restart", click: function () {
@@ -422,6 +423,16 @@
                         }
                     }]
                 });
+            } else {
+                $('<div id="finish-job" title="Info"><p>Import job complete.</p></div>').dialog({
+                    modal: true,
+                    buttons: [{
+                        text: "Restart", click: function () {
+                                $(this).dialog("close");
+                                //window.location.reload();
+                            }
+                    }]
+                });
             }
 
             $(".form-wrap").hide();
@@ -430,7 +441,7 @@
             allItemsImported.push({
                 'postType': $(".field-mapping .post_types").val(),
                 'itemIDs': toImportIDs,
-                'existingItems': $("#existingItemIDs").html().split(',')
+                'existingItems': $("#existingItemIDs").val().split(',')
             });
             console.log('PETER: allItemsImported: ', allItemsImported);
             if (allItemsImported) {
@@ -457,24 +468,28 @@
                 timeout: 0,
                 beforeSend: function () {
                     console.log('PETER: About to update newIgnoredItems');
-                    $(".progress-wrap").show();
                 },
                 success: function (response) {
-                    var IgnoredItemIds = response;
-                    $('#ignoredItemIDs').html(IgnoredItemIds.join(','));
-
+                    var IgnoredItemIds = [];
+                    $.each(response, function (index, element) {
+                        IgnoredItemIds.push(element);
+                    });
+                    $('#ignoredItemIDs').val(IgnoredItemIds.join(','));
                 }
             });
         }
 
         function checkForImportedPosts(totalRecords, newItemCount) {
-            var itemIDs = $("#toImportItemIDs").html();
+            var itemIDs = $("#toImportItemIDs").val();
             var skippedMSG = '';
 
             $.ajax({
                 url: ajaxurl,
                 type: "POST",
-                data: {'action': 'checkIfImportComplete', 'data': itemIDs},
+                data: {
+                    'action': 'checkIfImportComplete',
+                    'data': itemIDs
+                },
                 timeout: 0,
                 success: function (response) {
                     var progress = parseInt(response) / newItemCount;
@@ -502,7 +517,7 @@
         }
 
         function checkIfPostOnlyImportDone() {
-            var itemIDs = $("#toImportItemIDs").html();
+            var itemIDs = $("#toImportItemIDs").val();
             $.ajax({
                 url: ajaxurl,
                 type: "POST",
@@ -523,7 +538,7 @@
         }
 
         function checkforErrorImports() {
-            var itemIDs = $("#toImportItemIDs").html();
+            var itemIDs = $("#toImportItemIDs").val();
             console.log(itemIDs);
             $.ajax({
                 url: ajaxurl,
@@ -543,7 +558,10 @@
                 url: ajaxurl,
                 type: "POST",
                 dataType: 'json',
-                data: {'action': 'showImportList', 'data': items},
+                data: {
+                    'action': 'showImportList',
+                    'data': items,
+                },
                 timeout: 0,
                 success: function (response) {
                     if (toImportCount <= 0) {
@@ -817,7 +835,8 @@
                     }
                 }).dialog("open");
             } else {
-                $(".job-name").html($(".job-title").val());
+                $("#job_name").val(0);
+                $("#job_name").val($(".job-title").val());
                 $(".form-wrap[data-page='1']").hide();
                 $(".form-wrap[data-page='2']").show();
                 $(".btn_prev").show();
@@ -829,11 +848,14 @@
 
         $(".btn_save .opendoc_btn").on('click', function (e) {
             // Save the current job info.
-            var jobName = $(".field-mapping input[name='job_name']").val();
+            var jobName = $(".field-mapping input[name='job-name']").val();
             console.log('PETER: Jobname = '+jobName);
             var cronid = $('#tab-0').data('cron-id');
-            var dataToImport = buildSaveData(cronid, jobName);
-            var ajaxdata = {'action': 'updateImportJob', 'data': JSON.stringify(dataToImport)};
+            var dataToImport = buildSaveData(cronid);
+            var ajaxdata = {
+                'action': 'updateImportJob',
+                'data': JSON.stringify(dataToImport)
+            };
 
             var promise = $.ajax({
                     url: ajaxurl,
@@ -871,6 +893,9 @@
             $(".form-wrap[data-page='3']").show();
             // TODO: Work out why this is using the cron id from the delete button!
             cronID = $(this).parents(".item-row").find(".item-delete a").data("cronid");
+            $('#job_id').val(cronID);
+            $('#job_name').val(this.text);
+
             var $thisJobLink = $(this);
             $("#edit_coll_id").val($(this).data("collectionid"));
             $("#sel_coll_name").val($(this).data("coll-name"));
@@ -925,25 +950,27 @@
             return false;
         });
 
-        function buildSaveData(cronid = 0, jobName = '') {
+        function buildSaveData(cronid = 0) {
 
             var saveSelPostType = [];
             var savePostMapping = [];
+            var collName = $(".job-title").val();
+            var jobName = $("#job_name").val();
 
             $(".field-mapping .post_types").each(function (index) {
-                var collName = $(".job-title").val();
                 var schedule_hour_day = [$(this).parents('.field-mapping').find('.schedule-at #schedule-hour').val(), $(this).parents('.field-mapping').find('.schedule-at #schedule-day').val()];
                 var postStatus = $(this).parents('.field-mapping').find('input[name="pub-status"]:checked').val();
                 var notifyEmail = $(this).parents('.field-mapping').find('.notify-email input').val();
                 saveSelPostType.push({
                     'collectionID': $(this).parent().parent().parent().data('collectionid'),
-                    'collectionName': collName,
-                    'collectionHandle': $(this).parent().parent().parent().data('coll-handle'),
+                    'collectionName': $('#sel_coll_name').val(),
+                    'collectionHandle': $('#sel_coll_handle').val(),
                     'postStatus': postStatus,
                     'postType': $(this).val(),
                     'frequency': $(this).parents(".field-mapping").find('.radio-when:checked').val(),
                     'when': schedule_hour_day,
-                    'notifyEmail': notifyEmail
+                    'notifyEmail': notifyEmail,
+                    'hasFileURL': 0,
                 });
             });
             $(".mapping-table .table-row").each(function (index) {

@@ -25,7 +25,7 @@ class OpenDocs_Importer_Activator {
 		endif;
 		global $wpdb;
 		$tableName = $wpdb->prefix . 'odocs3';
-		$tableName_iteminfo = $wpdb->prefix . 'odocs_iteminfo';
+		$tableName_iteminfo = $wpdb->prefix . 'odocs3_iteminfo';
 		$tableName_field_names = $wpdb->prefix . 'odocs3_field_names';
 		$charset_collate = $wpdb->get_charset_collate();
 		$sql = "CREATE TABLE $tableName ( 

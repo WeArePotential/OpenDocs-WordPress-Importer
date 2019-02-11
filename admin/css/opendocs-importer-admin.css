@@ -3,7 +3,7 @@
 }
 
 .form-wrap {
-	display: none;
+	/*display: none;*/
 }
 .form-wrap.field-names-wrap {
 	display: block;
@@ -24,15 +24,23 @@
 
 .form-wrap {
 	float: left;
-    	width: 100%;
-    	padding: 20px;
-    	background: #fff;
-    	border: 1px solid #e5e5e5;
-    	box-shadow: 0 1px 1px rgba(0,0,0,.04);
-    	margin: 2em 0 2em 0;
-    	box-sizing: border-box;
+	width: 100%;
+	padding: 20px;
+	background: #fff;
+	border: 1px solid #e5e5e5;
+	box-shadow: 0 1px 1px rgba(0,0,0,.04);
+	margin: 2em 0 2em 0;
+	box-sizing: border-box;
 }
 
+#data-form {
+	clear: both;
+	background-color: #c99;
+	padding: 10px;
+}
+#data-form input {
+	width: 100%;
+}
 .progress-wrap {
 	display: none;
 }
@@ -445,6 +453,7 @@
 }
 .items-list .existing label {
 	opacity: 0.7;
+	font-style: italic;
 }
 
 .items-list p {
@@ -488,7 +497,9 @@
 	float: left;
 	width: 4%;
 	text-align: center;
-	padding: 11px 0 11px 0;
+	padding: 0px 0 11px 0;
+	transform: rotate(-90deg);
+	transform-origin: right center;
 }
 
 .items-list .select-all:last-child {
@@ -542,7 +553,7 @@
 }
 
 .imports-list .header-title {
-	width: 12%;
+	width: 20%;
 	margin: 0;
 	text-align: center;
 }
@@ -584,8 +595,8 @@
 
 .imports-list .coll-name {
 	float: left;
-	width: 12%;
-	text-align: center;
+	width: 20%;
+	text-align: left;
 }
 
 .imports-list .coll-info {
