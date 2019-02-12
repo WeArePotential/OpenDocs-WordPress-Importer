@@ -159,7 +159,7 @@ class Wordpress_IDocs implements IDocs_CRUD {
 		endforeach;
 
 		// See if we have an array or an object
-		if (is_object($fieldMappings)) :
+		if (is_object($fieldMappings[0])) :
 			foreach ( $fieldMappings as $fieldMapping ) :
 				if ( property_exists( $fieldMapping, 'type' ) ) :
 					if ( $fieldMapping->type == 'repeater' ) :

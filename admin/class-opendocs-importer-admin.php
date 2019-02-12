@@ -401,7 +401,7 @@ class OpenDocs_Importer_Admin {
 	 * @since 1.0.0
 	 */
 	public function cronImportPostsCallback( $data, $itemID ) {
-		error_log('PETER: cronImportPostsCallback', print_r($itemID,true));
+		error_log('PETER: cronImportPostsCallback: $itemID: '. print_r($itemID,true));
 	    $wp_class = new Wordpress_IDocs();
 		$result   = $wp_class->insertItem( $data, $itemID, false );
 	}

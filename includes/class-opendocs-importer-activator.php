@@ -29,7 +29,7 @@ class OpenDocs_Importer_Activator {
 		$tableName_field_names = $wpdb->prefix . 'odocs3_field_names';
 		$charset_collate = $wpdb->get_charset_collate();
 		$sql = "CREATE TABLE $tableName ( 
-				id mediumint(8) NOT NULL AUTO_INCREMENT,
+				id mediumint(8) NOT NULL AUTO_INCREMENT PRIMARY KEY,
 				collectionID int NOT NULL,
 				jobName varchar(255) NOT NULL,
 				collectionName varchar(255) NOT NULL,
@@ -40,7 +40,6 @@ class OpenDocs_Importer_Activator {
 				lastImport datetime DEFAULT CURRENT_TIMESTAMP, 
 				lastImportedItems longtext NULL,
 				hasFileUrl int NOT NULL 
-				PRIMARY KEY  (id)
 				) $charset_collate;";
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 		dbDelta( $sql );
