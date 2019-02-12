@@ -206,7 +206,7 @@
 		</div>
 
 
-		<div id="data-form">
+		<div id="data-form" class="form-wrap">
             <h3>Data</h3>
             <form >
                 job_id:    <input type="text" id="job_id" value="" /><br/>
