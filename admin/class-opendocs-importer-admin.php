@@ -742,7 +742,7 @@ class OpenDocs_Importer_Admin {
 			$canExcute = 0;
 			$cron_hour = date( 'g A', strtotime( $cron_schedule['when'] ) );
 			$hour_now  = date( 'g A' );
-			// PETER: Remove this for production
+			// TODO: Remove this for production
             if ( $cron_schedule['frequency'] == 'daily' || $cron_schedule['frequency'] == 'weekly') {
 				$cronCondition = 1;
             }
