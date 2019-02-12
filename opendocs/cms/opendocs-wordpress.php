@@ -138,13 +138,13 @@ class Wordpress_IDocs implements IDocs_CRUD {
 	 *
 	 * @since 1.0.0
 	 *
-	 * @param class $items Class containing items info -> postMapping, existingItemIDs, itemIDs to retrieve, post type info
+	 * @param class $items Class containing items info -> postMapping, itemIDs to retrieve, post type info
 	 * @param class $itemIDs stdClass containing list of item IDs to import
 	 *
 	 * @return array List of inserted Wordpress IDs
 	 */
 	public function insertItem( $items, $itemIDs) {
-		error_log('PETER: insertItem: '. print_r($items,true));
+		error_log('PETER: insertItem: '. print_r($items,true). print_r($itemIDs,true));
 		$fieldMappings   = $items->postMapping;
 		$itemCount       = count( $items->itemID );
 		$mappingArray    = [];
@@ -158,41 +158,66 @@ class Wordpress_IDocs implements IDocs_CRUD {
 			$itemList[] = $item->id;
 		endforeach;
 
-		foreach ( $fieldMappings as $fieldMapping ) :
-			if ( property_exists( $fieldMapping, 'type' ) ) :
-				if ( $fieldMapping->type == 'repeater' ) :
-					$mappingArray[] = array(
-						$fieldMapping->field_id,
-						$fieldMapping->value,
-						$fieldMapping->collectionID,
-						'sub_fields' => $fieldMapping->sub_fields,
-						'field_type' => $fieldMapping->type,
-						$fieldMapping->acf_name,
-						$fieldMapping->sub_field_names
-					);
+		// See if we have an array or an object
+		if (is_object($fieldMappings)) :
+			foreach ( $fieldMappings as $fieldMapping ) :
+				if ( property_exists( $fieldMapping, 'type' ) ) :
+					if ( $fieldMapping->type == 'repeater' ) :
+						$mappingArray[] = array(
+							$fieldMapping->field_id,
+							$fieldMapping->value,
+							$fieldMapping->collectionID,
+							'sub_fields' => $fieldMapping->sub_fields,
+							'field_type' => $fieldMapping->type,
+							$fieldMapping->acf_name,
+							$fieldMapping->sub_field_names
+						);
+					else :
+						$mappingArray[] = array(
+							$fieldMapping->field_id,
+							$fieldMapping->value,
+							$fieldMapping->collectionID,
+							'field_type' => $fieldMapping->type
+						);
+					endif;
 				else :
 					$mappingArray[] = array(
 						$fieldMapping->field_id,
 						$fieldMapping->value,
 						$fieldMapping->collectionID,
-						'field_type' => $fieldMapping->type
+						(property_exists($fieldMapping, 'acf_name') ? $fieldMapping->acf_name : ''),
 					);
 				endif;
-			else :
-				$mappingArray[] = array(
-					$fieldMapping->field_id,
-					$fieldMapping->value,
-					$fieldMapping->collectionID,
-					(property_exists($fieldMapping, 'acf_name') ? $fieldMapping->acf_name : ''),
-				);
-			endif;
-		endforeach;
+			endforeach;
+		else:
+			$mappingArray = $fieldMappings;
+		endif;
 
 		$itemObj = new XML_IDocs_Query();
 		$itemObj->setTimeout( 300 );
 		$itemHandleList = $itemObj->getItemHandle( $itemList );
 
 		foreach ( $mappingArray as $fieldMapping ) :
+			// We need to make sure we have both an associative array (with names) as well as positions.
+			// TODO: Ensure that the mapping is always passed in the same way. This is a crazy way to do it!
+			if ( !array_key_exists( 'field_name', $fieldMapping ) ) {
+				$fieldMapping['field_id']     = $fieldMapping[0];
+				$fieldMapping['field_name']   = $fieldMapping[1];
+				$fieldMapping['collectionID'] = $fieldMapping[2];
+				if ( isset( $fieldMapping[3] ) ) {
+					$fieldMapping['acf_name'] = $fieldMapping[3];
+				}
+				if ( isset( $fieldMapping[4] ) ) {
+					$fieldMapping['sub_field_names'] = $fieldMapping[4];
+				}
+			} else {
+				$fieldMapping[0] = $fieldMapping['field_id'];
+				$fieldMapping[1] = $fieldMapping['field_name'];
+				$fieldMapping[2] = $fieldMapping['collectionID'];
+				$fieldMapping[3] = (array_key_exists( 'acf_name', $fieldMapping) ? $fieldMapping['acf_name'] : '');
+				$fieldMapping[4] = (array_key_exists( 'sub_field_names', $fieldMapping) ? $fieldMapping['sub_field_names'] : '');
+			}
+
 			if ( array_key_exists( 'field_type', $fieldMapping ) ) :
 				if ( $fieldMapping['field_type'] == 'repeater' ) :
 					$toInsertMapping[] = array(
@@ -213,19 +238,19 @@ class Wordpress_IDocs implements IDocs_CRUD {
 					);
 				endif;
 			else :
-				//error_log('PETER: fieldMapping: '. print_r($fieldMapping,true));
 				$toInsertMapping[] = array(
 					'field_id'     => $fieldMapping[0],
 					'field_name'   => $fieldMapping[1],
 					'collectionID' => $fieldMapping[2],
-					'acf_name'     => $fieldMapping[3]
+					'acf_name'     => $fieldMapping[3],
 				);
 			endif;
 			if ( $fieldMapping[1] == 'full_text_url' || $fieldMapping[1] == 'full_text_type' || $fieldMapping[1] == 'full_text_size' ) :
 				$hasFileURL = 1;
 			endif;
 		endforeach;
-		// This should already have been done!
+
+		// This should already have been done, and we don't need to save the individual items any more.
 		// $cronID = $this->insertCollectionInDB( $postTypeInfo, $toInsertMapping, $hasFileURL );
 
 		$itemInfo    = array(
@@ -891,6 +916,10 @@ class Wordpress_IDocs implements IDocs_CRUD {
 		return $postObj;
 	}
 
+	public function getImportedPosts($items) {
+		return false;
+	}
+
 	public function getPostIDsByItemIDs( $items ) {
 		$postObj      = [];
 		$postTypeList = OpenDocs_Utils::getPostTypesList();
@@ -969,30 +998,18 @@ class Wordpress_IDocs implements IDocs_CRUD {
 		return $postObj;
 	}
 
-	public function checkIfImportComplete( $items ) {
+	public function checkIfImportComplete( $toImportItemIDs ) {
 		$importCount = 0;
-		foreach ( $items as $item ) :
-			$toImportItemIDs = $item->itemIDs;
-			$existingItemIDs = $this->getExistingItemIds();
-			foreach($toImportItemIDs as $id) {
-				//error_log('PETER: checkIfImportComplete: Check if '. $id .' is in '.print_r($existingItemIDs, true) );
-				if (in_array($id, $existingItemIDs)) {
-					$importCount++;
-				}
+		$existingItemIDs = $this->getExistingItemIds();
+		error_log('PETER: checkIfImportComplete: Check if ' .' is in '.print_r($toImportItemIDs, true) );
+		$itemIDs = explode(',',$toImportItemIDs);
+		foreach($itemIDs as $id) {
+			//error_log('PETER: checkIfImportComplete: Check if '. $id .' is in '.print_r($existingItemIDs, true) );
+			error_log('PETER: checkIfImportComplete: Answer '. in_array($id, $existingItemIDs) );
+			if (in_array($id, $existingItemIDs)) {
+				$importCount++;
 			}
-
-			/*$itemLoop        = new WP_Query( array( 'post_type' => $item->postType, 'posts_per_page' => - 1 ) );
-			while ( $itemLoop->have_posts() ) : $itemLoop->the_post();
-				if ( in_array( get_post_meta( get_the_ID(), 'odocs_item_id', true ), $toImportItemIDs ) && get_post_meta( get_the_ID(), 'odocs_has_file', true ) == 0 ) :
-					$importCount ++;
-				elseif ( in_array( get_post_meta( get_the_ID(), 'odocs_item_id', true ), $toImportItemIDs ) && get_post_meta( get_the_ID(), 'odocs_import_done', true ) == 1 ) :
-					$importCount ++;
-				endif;
-			endwhile;
-			wp_reset_postdata();
-			wp_reset_query();*/
-		endforeach;
-
+		}
 		return $importCount;
 	}
 

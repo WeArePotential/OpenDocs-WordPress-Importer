@@ -141,7 +141,7 @@
 			</form>
 		</div>
 		
-		<div class="progress-wrap">
+		<div id="progress-wrap">
 			<form class="publish-status">
 				<h3>
 					Import Progress
@@ -157,7 +157,7 @@
 				<p class="imported-progress-info">
 					
 				</p>
-				<p class="abort-job">
+                    <p class="abort-job">
 					<a href="#"><i class="fa fa-times" aria-hidden="true"></i> Abort</a>
 				</p>
 			</form>

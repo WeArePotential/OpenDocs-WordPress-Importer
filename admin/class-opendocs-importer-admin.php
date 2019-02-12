@@ -237,12 +237,13 @@ class OpenDocs_Importer_Admin {
 	 * @since 1.0.0
 	 */
 	public function getCollectionMetaData() {
+
 		$collectionID = $_POST['data'];
 		$reload = false;
 		if ( false === ( $collectionMetaData = get_transient( 'odocs_metadata_' . $collectionID ) ) ) :
             $reload = true;
 		else:
-            if ($collectionMetaData == '') :
+            if (!is_array($collectionMetaData)) :
                 $reload = true;
             endif;
 		endif;
@@ -250,6 +251,7 @@ class OpenDocs_Importer_Admin {
 		if ($reload) :
 			$wp_class     = new Wordpress_IDocs();
 			$xmlAPIQuery        = new XML_IDocs_Query();
+			$xmlAPIQuery->setTimeout(300);
 			$collectionMetaData = $xmlAPIQuery->getCollectionMetaData( $collectionID );
 			set_transient( 'odocs_metadata_' . $collectionID, $collectionMetaData, 12 * HOUR_IN_SECONDS );
 		endif;
@@ -338,9 +340,10 @@ class OpenDocs_Importer_Admin {
 	public function checkIfImportComplete() {
 		$data      = $_POST['data'];
 		$data      = str_replace( "\\", "", $data );
-		$cleandata = json_decode( $data );
+		//$cleandata = json_decode( $data );
+		//error_log(print_r($data,true));
 		$wp_class  = new Wordpress_IDocs();
-		$result    = $wp_class->checkIfImportComplete( $cleandata );
+		$result    = $wp_class->checkIfImportComplete( $data );
 		echo $result;
 		wp_die();
 	}
@@ -386,7 +389,7 @@ class OpenDocs_Importer_Admin {
 		$cleandata = json_decode( $data );
 		$wp_class  = new Wordpress_IDocs();
 		//error_log('PETER1 '.print_r($cleandata,true));
-		$result = $wp_class->getPostIDsByItemIDs( $cleandata );
+		$result = $wp_class->getImportedPosts( $cleandata );
 		//error_log('PETER2 '.print_r($result,true));
 		echo json_encode( $result );
 		wp_die();
@@ -398,7 +401,8 @@ class OpenDocs_Importer_Admin {
 	 * @since 1.0.0
 	 */
 	public function cronImportPostsCallback( $data, $itemID ) {
-		$wp_class = new Wordpress_IDocs();
+		error_log('PETER: cronImportPostsCallback', print_r($itemID,true));
+	    $wp_class = new Wordpress_IDocs();
 		$result   = $wp_class->insertItem( $data, $itemID, false );
 	}
 
@@ -446,10 +450,20 @@ class OpenDocs_Importer_Admin {
 		$xmlAPIQuery  = new XML_IDocs_Query();
 		$wp_class     = new Wordpress_IDocs();
 		$fieldLabels  = $wp_class->getFieldLabelsList();
+
+		$reload = false;
 		if ( false === ( $collectionMetaData = get_transient( 'odocs_metadata_' . $collectionID ) ) ) :
+			$reload = true;
+		else:
+			if (!is_array($collectionMetaData)) :
+				$reload = true;
+			endif;
+		endif;
+		if ($reload) :
 			$collectionMetaData = $xmlAPIQuery->getCollectionMetaData( $collectionID );
 			set_transient( 'odocs_metadata_' . $collectionID, $collectionMetaData, 12 * HOUR_IN_SECONDS );
 		endif;
+
 		$metaSelect = '<option value="not-selected">Select Open Docs field</option>';
 		$metaSelect .= '<option value="full_text_url">Full text url</option>';
 		$metaSelect .= '<option value="full_text_type">Full text type</option>';
@@ -719,6 +733,7 @@ class OpenDocs_Importer_Admin {
 	 *
 	 */
 	public function cronImportCallback() {
+		error_log( "PETER: cronImportCallback: ");
 		$wp_class       = new Wordpress_IDocs();
 		$cron_schedules = $wp_class->getCRONSchedule();
 		$xmlAPIQuery    = new XML_IDocs_Query();
@@ -727,6 +742,10 @@ class OpenDocs_Importer_Admin {
 			$canExcute = 0;
 			$cron_hour = date( 'g A', strtotime( $cron_schedule['when'] ) );
 			$hour_now  = date( 'g A' );
+			// PETER: Remove this for production
+            if ( $cron_schedule['frequency'] == 'daily' || $cron_schedule['frequency'] == 'weekly') {
+				$cronCondition = 1;
+            }
 			if ( $cron_schedule['frequency'] == 'daily' && $cron_hour == $hour_now ) :
 				$cronCondition = 1;
 			endif;
@@ -734,49 +753,61 @@ class OpenDocs_Importer_Admin {
 				$cronCondition = 1;
 			endif;
 			if ( $cronCondition === 1 ) :
-                $collectionID      = $cron_schedule['collectionID'];
-                $existingItems      = $wp_class->getExistingItemIds();
+				error_log( "PETER: cronImportCallback: ". print_r($cron_schedule, true));
+				$collectionID      = $cron_schedule['collectionID'];
+                $existingItems     = $wp_class->getExistingItemIds();
                 $existingItemCount = count( $existingItems );
                 $itemCount         = $xmlAPIQuery->getItemCountInCollection( $collectionID );
                 $collectionIDs     = array( array( $itemCount, $collectionID ) );
-                $newItems          = $xmlAPIQuery->getItemIDsInCollection( $collectionIDs );
-                $itemCount         = count( $newItems );
+                $allItems          = $xmlAPIQuery->getItemIDsInCollection( $collectionIDs );
+                $itemCount         = count( $allItems );
+                $ignoredItems      = $wp_class->getIgnoredItemIds();
+
                 $itemsIDs          = [];
                 $emailOpts         = '';
                 $postIDs           = [];
                 $itemObj           = [];
 
-                $itemsMissing      = array_merge( array_diff( $existingItems, $newItems ), array_diff( $newItems, $existingItems ) );
-				error_log( "PETER: Existing Items: " . print_r( $existingItems, true ) . "New Items: " . print_r( $newItems, true ) );
-				if ( count( $itemsMissing ) >= 1 ) :
+                // New Items = allItems - (existingItems + rejectedItems)
+                // Check that there are some ignored items...
+                if (!is_array($ignoredItems)) {
+	                $skipItems = $existingItems;
+                } else {
+                    $skipItems = array_merge( $existingItems, $ignoredItems);
+                }
+                $newItems = array_diff($allItems, $skipItems);
+
+			    error_log( "PETER: cronImportCallback: ".count($newItems)." new Items: " . print_r( $newItems, true ) );
+				if ( count( $newItems ) >= 1 ) :
 					$postTypeObj = (object) array(
-						'collectionID'   => $collectionID,
-						'collectionName' => $cron_schedule['name'],
-						'collectionHandle' => $cron_schedule['handle'],
-						'postType'       => $cron_schedule['postType'],
-						'postStatus'     => $cron_schedule['postStatus']
-					);
-					foreach ( $itemsMissing as $item ) :
+                        'collectionID'   => $collectionID,
+                        'collectionName' => $cron_schedule['name'],
+                        'collectionHandle' => $cron_schedule['handle'],
+                        'postType'       => $cron_schedule['postType'],
+                        'postStatus'     => $cron_schedule['postStatus']
+                    );
+                    foreach ( $newItems as $item ) :
                         $itemID     = array( 'id' => $item, 'collectionID' => $collectionID );
                         $itemID     = (object) $itemID;
                         $itemObj[]  = $itemID;
                         $itemsIDs[] = $item;
-					endforeach;
-					$itemToInsert  = array(
-						'postType'        => array( $postTypeObj ),
-						'postMapping'     => $cron_schedule['mapping'],
-						'itemID'          => $itemObj,
-						'existingItemIDs' => (object) $existingItems,
-						'cronID'          => $cron_schedule['ID']
-					);
-					$insertedPosts = $wp_class->insertItem( (object) $itemToInsert, $itemObj, true );
-					$emailOpts     = array(
-						'collectionName' => $cron_schedule['name'],
-						'email'          => $cron_schedule['email'],
-						'postIDs'        => $insertedPosts
-					);
-					$wp_class->updateCollectionInDB( $cron_schedule['ID'], $itemsIDs );
-					$wp_class->sendNotificationEmail( (object) $emailOpts );
+                    endforeach;
+                    $itemToInsert  = array(
+                        'postType'        => array( $postTypeObj ),
+                        'postMapping'     => $cron_schedule['mapping'],
+                        'itemID'          => $itemObj,
+                        'existingItemIDs' => $existingItems,
+                        'cronID'          => $cron_schedule['ID']
+                    );
+                    $insertedPosts = $wp_class->insertItem( (object) $itemToInsert, $itemObj );
+                    $emailOpts     = array(
+                        'collectionName' => $cron_schedule['name'],
+                        'email'          => $cron_schedule['email'],
+                        'postIDs'        => $insertedPosts
+                    );
+                    // Don't need to do this as we're not using the iteminfo table any more
+                    // $wp_class->updateCollectionInDB( $cron_schedule['ID'], $itemsIDs );
+                    $wp_class->sendNotificationEmail( (object) $emailOpts );
 				endif;
 			endif;
 		endforeach;
@@ -810,7 +841,7 @@ class OpenDocs_Importer_Admin {
                             <a href="#">Name</a>
                         </div>
                         <div class="header-col">
-                            <a href="#">Imported Items</a>
+                            <a href="#">Items</a>
                         </div>
                         <div class="header-col header-col-notify">
                             <a href="#">Notification</a>
@@ -842,6 +873,7 @@ class OpenDocs_Importer_Admin {
 						$importedItems = $wp_class->viewImportedItemsInCollection( $import->id );
 						$acfFields = $this->getACFieldsByCPT( $importOptions->postType );
 						$taxonomies = $this->getTaxonomyByCPT( $importOptions->postType );
+						//$itemIDsInCollection = $xmlAPIQuery->getItemIDsInCollectionShort( $import->collectionID );
 						$itemsInCollection = $xmlAPIQuery->getItemCountInCollection( $import->collectionID );
 						$defaultFields = array( 'Title', 'Date', 'Content', 'IDS Identifier' );
 						foreach ( $defaultFields as $defaultField ) :
@@ -885,8 +917,8 @@ class OpenDocs_Importer_Admin {
                                                           data-post-type="<?php echo $importOptions->postType; ?>"><?php echo $jobName; ?></a><br/><?php echo trim(array_values(array_slice(explode('->', $import->collectionName), -1))[0]); ?>
 
                             </div>
-                            <div class="row coll-info"><a href="#" class="imported-items"
-                                                          data-cronid="<?php echo $import->id; ?>">View <?php echo $itemsInCollection; ?> items</a></div>
+                            <div class="row coll-info"><span href="#" class="imported-items"
+                                                          data-cronid="<?php echo $import->id; ?>"><?php echo $itemsInCollection; ?> items</span></div>
                             <div class="row coll-info coll-notify"><?php echo $notifyEmail; ?></div>
                             <div class="row coll-info import-post"
                                  data-status="<?php echo $importOptions->postStatus; ?>"><?php

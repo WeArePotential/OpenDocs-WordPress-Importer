@@ -3,7 +3,7 @@
 }
 
 .form-wrap {
-	/*display: none;*/
+	display: none;
 }
 .form-wrap.field-names-wrap {
 	display: block;
@@ -41,7 +41,7 @@
 #data-form input {
 	width: 100%;
 }
-.progress-wrap {
+#progress-wrap {
 	display: none;
 }
 
@@ -61,7 +61,7 @@
 .progress-bar .progress {
 	font-size: 20px;
 	font-weight: bold;
-	width: 0%;
+	width: 0;
     height: 100%;
 	padding: 8px;
 	position: relative;
@@ -117,7 +117,6 @@
     right: 0;
     background-image: -webkit-gradient(linear, 0 0, 100% 100%, color-stop(.25, rgba(255, 255, 255, .2)), color-stop(.25, transparent), color-stop(.5, transparent), color-stop(.5, rgba(255, 255, 255, .2)), color-stop(.75, rgba(255, 255, 255, .2)), color-stop(.75, transparent), to(transparent) );
     background-image: -moz-linear-gradient( -45deg, rgba(255, 255, 255, .2) 25%, transparent 25%, transparent 50%, rgba(255, 255, 255, .2) 50%, rgba(255, 255, 255, .2) 75%, transparent 75%, transparent );
-	background-image: -moz-linear-gradient( -45deg, rgba(255, 255, 255, .2) 25%, transparent 25%, transparent 50%, rgba(255, 255, 255, .2) 50%, rgba(255, 255, 255, .2) 75%, transparent 75%, transparent );
 	background-image: linear-gradient( -45deg, rgba(255, 255, 255, .2) 25%, transparent 25%, transparent 50%, rgba(255, 255, 255, .2) 50%, rgba(255, 255, 255, .2) 75%, transparent 75%, transparent );
     z-index: 1;
     -webkit-background-size: 50px 50px;
@@ -497,13 +496,17 @@
 	float: left;
 	width: 4%;
 	text-align: center;
-	padding: 0px 0 11px 0;
+	padding: 0 0 11px 0;
 	transform: rotate(-90deg);
 	transform-origin: right center;
 }
 
 .items-list .select-all:last-child {
 	margin-right: 1%;
+}
+
+.items-list .item-row .row:first-child {
+	margin-left: 1%;
 }
 
 .items-list .list-header label {

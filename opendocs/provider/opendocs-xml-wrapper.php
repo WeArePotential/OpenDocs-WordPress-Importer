@@ -272,7 +272,31 @@ class XML_IDocs_Query implements IDocs_Query_Interface {
 		endforeach;
 		return $items;
     }
-	
+
+	/**
+	 * Get collection to get Item IDs
+	 *
+	 * Retrieves array of items IDs in a collection by collection ID
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param int $communityID Community ID to retrieve collection
+	 *
+	 * @return array List of items IDs
+	 */
+	public function getItemIDsInCollectionShort($collectionID) {
+		$itemIDs = array();
+		$request = $this->APIUrl . '/collections/' . $collectionID . '/?expand=items&limit=1000';
+		$collDOM = $this->getXMLDomDoc($request);
+		$itemNodes = $collDOM->getElementsByTagName('items');
+		foreach( $itemNodes as $node ) :
+			$item = $node->getElementsByTagName( 'id' );
+			$itemIDs[]= $item->item(0)->nodeValue;
+		endforeach;
+		return $itemIDs;
+	}
+
+
 	/**
  	* Item IDs in a collection
  	*
@@ -468,7 +492,6 @@ class XML_IDocs_Query implements IDocs_Query_Interface {
 		$itemDom = new DOMDocument();
         $itemDom->loadXML($xmlContent);
     	$itemXPath = new DOMXPath($itemDom);
-
 		$postTypeInfo = $this->postTypeInfo;
 		$fieldMapping = $this->fieldMapping;
 		$itemHandles = $this->itemHandles;
@@ -478,7 +501,7 @@ class XML_IDocs_Query implements IDocs_Query_Interface {
 		$itemIDs = $this->itemIDs;
 
 		$wp_class = new Wordpress_IDocs();
-		error_log('PETER: retrieveValuesCRON: '. print_r($fieldMapping,true));
+		//error_log('PETER: retrieveValuesCRON: '. print_r($fieldMapping,true));
     	foreach( $fieldMapping as $mapping ) :
     		if( $mapping['field_name'] == 'full_text_url' || $mapping['field_name'] == 'full_text_type' || $mapping['field_name'] == 'full_text_size' ) :
 				if (!array_key_exists( 'field_type', $mapping )) :
@@ -820,6 +843,7 @@ class XML_IDocs_Query implements IDocs_Query_Interface {
     }
 		
 	private function getXMLDomDocMultiValues( $itemIDs, $requests ) {
+		ini_set('max_execution_time', 300);
 		$multi_curl = new MultiCurl();
 		$multi_curl->setHeader('Accept', 'application/xml');
 		$multi_curl->setConcurrency(10);
@@ -830,7 +854,7 @@ class XML_IDocs_Query implements IDocs_Query_Interface {
 		$insertedPostIDs = [];
 		$errorItemIDs = [];
 		foreach( $requests as $key => $req ) {
-			error_log('PETER: getXMLDomDocMultiValues: '.print_r($req['url'], true));
+			//error_log('PETER: getXMLDomDocMultiValues: '.print_r($req['url'], true));
    			$multi_curl->addGet($req['url']);
 		}
 		$multi_curl->success(function ($instance) use(&$insertedPostID) {
