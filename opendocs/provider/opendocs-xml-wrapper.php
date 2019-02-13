@@ -532,6 +532,10 @@ class XML_IDocs_Query implements IDocs_Query_Interface {
 	    		endforeach;
     		endif;
     	endforeach;
+		if (!array_key_exists($itemID, $itemHandles)) {
+			$handle                 = $this->getItemHandle( array($itemID) );
+			$itemHandles[ $itemID ] = $handle[ $itemID ];
+		}
     	$insertedPostID = $wp_class->insertPost($itemID, $itemHandles[$itemID], $fieldValues, $postTypeInfo, $itemCount, $this->insertedItemIDs, $this->itemIDs, $this->itemHandles, $this->cronID );
 		$this->insertedItemIDs[$itemID] = $insertedPostID;
 		return $insertedPostID;
@@ -581,7 +585,7 @@ class XML_IDocs_Query implements IDocs_Query_Interface {
  	* @return array ItemHandles
 	*/
     public function getItemHandle( $itemIDs ) {
-		$itemHandles = [];
+		$itemHandles = $this->itemHandles;
 		$requests = [];
 		foreach($itemIDs as $itemID) : 
 			$requests[] = $this->APIUrl . '/items/' . $itemID;
@@ -600,7 +604,7 @@ class XML_IDocs_Query implements IDocs_Query_Interface {
 				endforeach;
 			endif;
 		endforeach;
-		$this->itemHandles = $itemHandles;
+		$this->itemHandles = array_merge($itemHandles, $this->itemHandles);
 		return $itemHandles;
     }
 	
@@ -872,7 +876,11 @@ class XML_IDocs_Query implements IDocs_Query_Interface {
 
 			$itemObj = simplexml_import_dom($itemDOM);
 			$itemID = (string)$itemObj->id;
-			$itemHandle = $itemHandles[$itemID];
+			if (!array_key_exists($itemID, $itemHandles)) {
+				$handle                 = $this->getItemHandle( array($itemID) );
+				$itemHandles[ $itemID ] = $handle[ $itemID ];
+			}
+			$itemHandle = $itemHandles[ $itemID ];
 
 			//error_log( 'PETER: getXMLDomDocMultiGetURL: $item: ' . print_r( $itemID, true ) );
 
