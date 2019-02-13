@@ -26,8 +26,8 @@ if ( ! defined( 'WPINC' ) ) {
 function my_add_weekly( $schedules ) {
 	// add a 'weekly' schedule to the existing set
 	$schedules['thirty'] = array(
-		'interval' => 180,
-		'display' => __('3 Minutes')
+		'interval' => 1800,
+		'display' => __('30 Minutes')
 	);
 	return $schedules;
 }

@@ -29,9 +29,10 @@ class Wordpress_IDocs implements IDocs_CRUD {
 		if ( ! is_array( $ignoredItemIDs ) ) :
 			$ignoredItemIDs = array();
 		endif;
-		$existingItems = array_merge( $existingItems, $ignoredItemIDs );
+		$existingItems  = array_merge( $existingItems, $ignoredItemIDs );
 		$ignoredItemIds = array_unique( $existingItems );
 		update_option( 'opendocs_ignored', $ignoredItemIds );
+
 		return $ignoredItemIds;
 	}
 
@@ -45,7 +46,7 @@ class Wordpress_IDocs implements IDocs_CRUD {
 	 * @return array List of ignored item IDs
 	 */
 	public function getIgnoredItemIds() {
-		return get_option( 'opendocs_ignored', array());
+		return get_option( 'opendocs_ignored', array() );
 	}
 
 	/**
@@ -64,8 +65,10 @@ class Wordpress_IDocs implements IDocs_CRUD {
 		if ( ( $key = array_search( $itemID, $items ) ) !== false ) :
 			unset( $items[ $key ] );
 			update_option( 'opendocs_ignored', $items );
+
 			return 1;
 		endif;
+
 		return 0;
 	}
 
@@ -128,6 +131,7 @@ class Wordpress_IDocs implements IDocs_CRUD {
 		global $wpdb;
 		$tableName   = $wpdb->prefix . 'odocs3';
 		$importsList = $wpdb->get_results( "SELECT * FROM $tableName" );
+
 		return $importsList;
 	}
 
@@ -143,8 +147,8 @@ class Wordpress_IDocs implements IDocs_CRUD {
 	 *
 	 * @return array List of inserted Wordpress IDs
 	 */
-	public function insertItem( $items, $itemIDs) {
-		error_log('PETER: insertItem: '. print_r($items,true). print_r($itemIDs,true));
+	public function insertItem( $items, $itemIDs ) {
+		error_log( 'PETER: insertItem: ' . print_r( $items, true ) . print_r( $itemIDs, true ) );
 		$fieldMappings   = $items->postMapping;
 		$itemCount       = count( $items->itemID );
 		$mappingArray    = [];
@@ -152,14 +156,14 @@ class Wordpress_IDocs implements IDocs_CRUD {
 		$itemList        = [];
 		$postTypeInfo    = $items->postType[0];
 		$toInsertMapping = [];
-		$cronID          = (property_exists($items, 'cronID') ? $items->cronID : 0);
-		$hasFileURL      = 0;
+		$cronID          = ( property_exists( $items, 'cronID' ) ? $items->cronID : 0 );
+		$hasFileURL      = 1;
 		foreach ( $itemIDs as $item ) :
 			$itemList[] = $item->id;
 		endforeach;
 
 		// See if we have an array or an object
-		if (is_object($fieldMappings[0])) :
+		if ( is_object( $fieldMappings[0] ) ) :
 			foreach ( $fieldMappings as $fieldMapping ) :
 				if ( property_exists( $fieldMapping, 'type' ) ) :
 					if ( $fieldMapping->type == 'repeater' ) :
@@ -185,7 +189,7 @@ class Wordpress_IDocs implements IDocs_CRUD {
 						$fieldMapping->field_id,
 						$fieldMapping->value,
 						$fieldMapping->collectionID,
-						(property_exists($fieldMapping, 'acf_name') ? $fieldMapping->acf_name : ''),
+						( property_exists( $fieldMapping, 'acf_name' ) ? $fieldMapping->acf_name : '' ),
 					);
 				endif;
 			endforeach;
@@ -200,7 +204,7 @@ class Wordpress_IDocs implements IDocs_CRUD {
 		foreach ( $mappingArray as $fieldMapping ) :
 			// We need to make sure we have both an associative array (with names) as well as positions.
 			// TODO: Ensure that the mapping is always passed in the same way. This is a crazy way to do it!
-			if ( !array_key_exists( 'field_name', $fieldMapping ) ) {
+			if ( ! array_key_exists( 'field_name', $fieldMapping ) ) {
 				$fieldMapping['field_id']     = $fieldMapping[0];
 				$fieldMapping['field_name']   = $fieldMapping[1];
 				$fieldMapping['collectionID'] = $fieldMapping[2];
@@ -214,8 +218,8 @@ class Wordpress_IDocs implements IDocs_CRUD {
 				$fieldMapping[0] = $fieldMapping['field_id'];
 				$fieldMapping[1] = $fieldMapping['field_name'];
 				$fieldMapping[2] = $fieldMapping['collectionID'];
-				$fieldMapping[3] = (array_key_exists( 'acf_name', $fieldMapping) ? $fieldMapping['acf_name'] : '');
-				$fieldMapping[4] = (array_key_exists( 'sub_field_names', $fieldMapping) ? $fieldMapping['sub_field_names'] : '');
+				$fieldMapping[3] = ( array_key_exists( 'acf_name', $fieldMapping ) ? $fieldMapping['acf_name'] : '' );
+				$fieldMapping[4] = ( array_key_exists( 'sub_field_names', $fieldMapping ) ? $fieldMapping['sub_field_names'] : '' );
 			}
 
 			if ( array_key_exists( 'field_type', $fieldMapping ) ) :
@@ -253,13 +257,18 @@ class Wordpress_IDocs implements IDocs_CRUD {
 		// This should already have been done, and we don't need to save the individual items any more.
 		// $cronID = $this->insertCollectionInDB( $postTypeInfo, $toInsertMapping, $hasFileURL );
 
-		$itemInfo    = array(
+		$itemInfo        = array(
 			'itemsList'     => $itemList,
 			'itemHandles'   => $itemHandleList,
 			'existingItems' => $this->getExistingItems()
 		);
-		$mappingInfo = array( 'postTypeInfo' => $postTypeInfo, 'collID' => $collID, 'mappingArray' => $toInsertMapping );
-		$insertedPostIDs = $itemObj->getItems( (object) $itemInfo, (object) $mappingInfo, $cronID);
+		$mappingInfo     = array(
+			'postTypeInfo' => $postTypeInfo,
+			'collID'       => $collID,
+			'mappingArray' => $toInsertMapping
+		);
+		$insertedPostIDs = $itemObj->getItems( (object) $itemInfo, (object) $mappingInfo, $cronID );
+
 		return $insertedPostIDs;
 
 	}
@@ -284,8 +293,8 @@ class Wordpress_IDocs implements IDocs_CRUD {
 	 *
 	 * @return int inserted Wordpress Post ID
 	 */
-		public function insertPost( $itemID, $itemHandle, $fieldValues, $postTypeInfo, $itemCount, $importedItems, $itemIDs, $itemHandles, $cronID ) {
-			if ( ! empty( $fieldValues ) ) :
+	public function insertPost( $itemID, $itemHandle, $fieldValues, $postTypeInfo, $itemCount, $importedItems, $itemIDs, $itemHandles, $cronID ) {
+		if ( ! empty( $fieldValues ) ) :
 
 			$mergedArray   = [];
 			$hasFileURL    = 0;
@@ -364,9 +373,9 @@ class Wordpress_IDocs implements IDocs_CRUD {
 							elseif ( array_search( 'N/A', $postMapping['lang'] ) !== false ) :
 								$langIndex = array_search( 'N/A', $postMapping['lang'] );
 							endif;
-							$content .= '<br />' . $postMapping['field_value'][ $langIndex ];
+							$content .= $postMapping['field_value'][ $langIndex ];
 						else :
-							$content .= '<br />' . $postMapping['field_value'];
+							$content .= $postMapping['field_value'];
 						endif;
 
 						break;
@@ -382,19 +391,19 @@ class Wordpress_IDocs implements IDocs_CRUD {
 			);
 			$insertedPostID = wp_insert_post( $postArgs );
 
+			$importedItems[ $itemID ] = $insertedPostID;
 			if ( $importedCount == ( $itemCount - 1 ) ) :
-				$importedItems[ $itemID ] = $insertedPostID;
 				$importedCount ++;
 			endif;
 
 			add_post_meta( $insertedPostID, 'odocs_item_date', $date );
 			add_post_meta( $insertedPostID, 'odocs_item_id', $itemID );
-			if ( $hasFileURL == 1 ) :
+				if ( $hasFileURL == 1 ) :
 				add_post_meta( $insertedPostID, 'odocs_has_file', 1 );
 			endif;
 
-			if ($cronID == 0) {
-				error_log('PETER: insertPost: Don\'t need to insertCollectionInDB: '. $cronID);
+			if ( $cronID == 0 ) {
+				error_log( 'PETER: insertPost: Don\'t need to insertCollectionInDB: ' . $cronID );
 				//$cronID = $this->insertCollectionInDB($postTypeInfo, $importedItems, $hasFileURL);
 			}
 
@@ -402,11 +411,11 @@ class Wordpress_IDocs implements IDocs_CRUD {
 			$postMetaUpdate = $this->updatePostFields( $insertedPostID, $itemHandle, $mergedArray, $hasFileURL );
 
 			if ( $itemCount == $importedCount ) :
-				if ( $hasFileURL == 1 ) :
-					$itemObj = new XML_IDocs_Query();
-					$itemObj->setTimeout( 300 );
-					$downloadFile = $itemObj->getItemFiles( $importedItems, $fieldValues, $itemIDs, $itemHandles );
-				endif;
+				//if ( $hasFileURL == 1 ) :
+				$itemObj = new XML_IDocs_Query();
+				$itemObj->setTimeout( 300 );
+				$downloadFile = $itemObj->getItemFiles( $importedItems, $fieldValues, $itemIDs, $itemHandles );
+				//endif;
 			endif;
 
 			return $insertedPostID;
@@ -591,16 +600,16 @@ class Wordpress_IDocs implements IDocs_CRUD {
 		$mappingArray = json_encode( $fieldMappings );
 		$options      = json_encode( $options );
 		//$errorItems = json_encode($errorRetrievingItems);
-		error_log('PETER: insertCollectionInDB1: '. print_r($postTypeInfo,true));
+		error_log( 'PETER: insertCollectionInDB1: ' . print_r( $postTypeInfo, true ) );
 		$wpdb->insert( $tableName,
 			array(
-				'collectionID'   => $postTypeInfo->collectionID,
-				'jobName'        => $postTypeInfo->jobName,
-				'collectionName' => $postTypeInfo->collectionName,
+				'collectionID'     => $postTypeInfo->collectionID,
+				'jobName'          => $postTypeInfo->jobName,
+				'collectionName'   => $postTypeInfo->collectionName,
 				'collectionHandle' => $postTypeInfo->collectionHandle,
-				'fieldMappings'  => $mappingArray,
-				'options'        => $options,
-				'errorItems'     => []
+				'fieldMappings'    => $mappingArray,
+				'options'          => $options,
+				'errorItems'       => []
 			),
 			array(
 				'%d',
@@ -613,6 +622,7 @@ class Wordpress_IDocs implements IDocs_CRUD {
 			)
 		);
 		$cronID = $wpdb->insert_id;
+
 		return $cronID;
 	}
 
@@ -656,7 +666,7 @@ class Wordpress_IDocs implements IDocs_CRUD {
 	private function updateItemsInDB( $cronID, $itemIDs ) {
 		global $wpdb;
 		$tableName = $wpdb->prefix . 'odocs_iteminfo';
-		foreach($itemIDs as $itemID) {
+		foreach ( $itemIDs as $itemID ) {
 			$wpdb->insert( $tableName,
 				array(
 					'cronID' => $cronID,
@@ -669,6 +679,7 @@ class Wordpress_IDocs implements IDocs_CRUD {
 			);
 		}
 	}
+
 	/**
 	 * Get imported item IDs for a Cron Job
 	 *
@@ -717,13 +728,13 @@ class Wordpress_IDocs implements IDocs_CRUD {
 
 		$mappingList = array();
 		foreach ( $selectedPostTypes as $postType ) :
-			$mappingArray = array();
-			$existingList = [];
-			$postIDs      = [];
-			$collectionID      = $postType->collectionID;
-			$collectionName    = $postType->collectionName;
-			$collectionHandle    = $postType->collectionHandle;
-			$options      = array(
+			$mappingArray     = array();
+			$existingList     = [];
+			$postIDs          = [];
+			$collectionID     = $postType->collectionID;
+			$collectionName   = $postType->collectionName;
+			$collectionHandle = $postType->collectionHandle;
+			$options          = array(
 				'postType'    => $postType->postType,
 				'postStatus'  => $postType->postStatus,
 				'frequency'   => $postType->frequency,
@@ -764,11 +775,11 @@ class Wordpress_IDocs implements IDocs_CRUD {
 			else:
 				$isUpdated = $wpdb->insert( $tableName,
 					array(
-						'jobName'       => $jobName,
-						'fieldMappings' => $mappingArray,
-						'options'       => $options,
-						'collectionID'  => $collectionID,
-						'collectionName'  => $collectionName,
+						'jobName'          => $jobName,
+						'fieldMappings'    => $mappingArray,
+						'options'          => $options,
+						'collectionID'     => $collectionID,
+						'collectionName'   => $collectionName,
 						'collectionHandle' => $collectionHandle,
 					),
 					array(
@@ -858,7 +869,7 @@ class Wordpress_IDocs implements IDocs_CRUD {
 
 	public function isCollectionInCRON( $collectionID ) {
 		global $wpdb;
-		$inCron     = -1;
+		$inCron     = - 1;
 		$tableName  = $wpdb->prefix . 'odocs3';
 		$importList = $wpdb->get_results( "SELECT * FROM $tableName WHERE collectionID = $collectionID" );
 		foreach ( $importList as $import ) :
@@ -916,18 +927,18 @@ class Wordpress_IDocs implements IDocs_CRUD {
 		return $postObj;
 	}
 
-	public function getImportedPosts($items) {
+	public function getImportedPosts( $items ) {
 		return false;
 	}
 
 	public function getPostIDsByItemIDs( $items ) {
-		$postObj      = [];
-		$postTypeList = OpenDocs_Utils::getPostTypesList();
+		$postObj         = [];
+		$postTypeList    = OpenDocs_Utils::getPostTypesList();
 		$existingItemIDs = $this->getExistingItemIds();
 		foreach ( $items as $item ) :
-			$toImportItemIDs    = array();
-			foreach($item->itemIDs as $item) {
-				if (is_object($item)) {
+			$toImportItemIDs = array();
+			foreach ( $item->itemIDs as $item ) {
+				if ( is_object( $item ) ) {
 					$toImportItemIDs[] = $item->id;
 				} else {
 					$toImportItemIDs[] = $item;
@@ -999,17 +1010,18 @@ class Wordpress_IDocs implements IDocs_CRUD {
 	}
 
 	public function checkIfImportComplete( $toImportItemIDs ) {
-		$importCount = 0;
+		$importCount     = 0;
 		$existingItemIDs = $this->getExistingItemIds();
-		error_log('PETER: checkIfImportComplete: Check if ' .' is in '.print_r($toImportItemIDs, true) );
-		$itemIDs = explode(',',$toImportItemIDs);
-		foreach($itemIDs as $id) {
+		error_log( 'PETER: checkIfImportComplete: Check if ' . ' is in ' . print_r( $toImportItemIDs, true ) );
+		$itemIDs = explode( ',', $toImportItemIDs );
+		foreach ( $itemIDs as $id ) {
 			//error_log('PETER: checkIfImportComplete: Check if '. $id .' is in '.print_r($existingItemIDs, true) );
-			error_log('PETER: checkIfImportComplete: Answer '. in_array($id, $existingItemIDs) );
-			if (in_array($id, $existingItemIDs)) {
-				$importCount++;
+			error_log( 'PETER: checkIfImportComplete: Answer ' . in_array( $id, $existingItemIDs ) );
+			if ( in_array( $id, $existingItemIDs ) ) {
+				$importCount ++;
 			}
 		}
+
 		return $importCount;
 	}
 
@@ -1057,13 +1069,14 @@ class Wordpress_IDocs implements IDocs_CRUD {
 
 	public function getExistingItems() {
 		global $wpdb;
-		$tableName   = $wpdb->prefix . 'postmeta';
-		$result = $wpdb->get_results( "SELECT post_id, meta_value FROM $tableName WHERE meta_key = 'odocs_item_id'" );
-		foreach($result as $row) {
-			if (get_post_status($row->post_id ) != false) { // Might be in metadata, but no longer existing!
-				$existingItems[$row->meta_value] = $row->post_id;
+		$tableName = $wpdb->prefix . 'postmeta';
+		$result    = $wpdb->get_results( "SELECT post_id, meta_value FROM $tableName WHERE meta_key = 'odocs_item_id'" );
+		foreach ( $result as $row ) {
+			if ( get_post_status( $row->post_id ) != false ) { // Might be in metadata, but no longer existing!
+				$existingItems[ $row->meta_value ] = $row->post_id;
 			}
 		}
+
 		return $existingItems;
 	}
 
@@ -1093,9 +1106,10 @@ class Wordpress_IDocs implements IDocs_CRUD {
 		wp_reset_postdata();
 		wp_reset_query();
 		*/
-		foreach($this->getExistingItems() as $item_id=>$post_id) {
+		foreach ( $this->getExistingItems() as $item_id => $post_id ) {
 			$existingItemIds[] = $item_id;
 		}
+
 		return $existingItemIds;
 	}
 
@@ -1166,17 +1180,19 @@ class Wordpress_IDocs implements IDocs_CRUD {
 		foreach ( $fieldLabelRows as $fieldLabelRow ) :
 			$fieldLabels[ $fieldLabelRow->fieldName ] = $fieldLabelRow->fieldLabel;
 		endforeach;
+
 		return $fieldLabels;
 	}
 
-	public function getCollectionName($collectionID) {
+	public function getCollectionName( $collectionID ) {
 		global $wpdb;
-		$tableName      = $wpdb->prefix . 'odocs3';
-		$sql = "SELECT collectionName FROM $tableName WHERE collectionId LIKE '$collectionID'";
-		$results = $wpdb->get_results($sql) or die(mysql_error());
-		foreach($results as $result) {
+		$tableName = $wpdb->prefix . 'odocs3';
+		$sql       = "SELECT collectionName FROM $tableName WHERE collectionId LIKE '$collectionID'";
+		$results = $wpdb->get_results( $sql ) or die( mysql_error() );
+		foreach ( $results as $result ) {
 			$name = $results->collectionName;
 		}
+
 		return $name;
 	}
 

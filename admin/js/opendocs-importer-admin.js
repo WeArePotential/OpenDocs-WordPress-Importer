@@ -103,7 +103,7 @@
                         //console.log('PETER: About to send...');
                     },
                     success: function (response) {
-                        $(".community-wrap .ajax-loader").hide();
+                        //$(".community-wrap .ajax-loader").hide();
                         console.log('PETER: Updated job with cron_id: ' + response);
                         $('#tab-0').data('cron-id', response);
                     }
@@ -118,7 +118,7 @@
                     'action': 'getItemsInCollection',
                     'data': collectionIDs
                 };
-                $(".ajax-loader").show();
+                $(".community-wrap .ajax-loader").show();
                 $.ajax({
                     url: ajaxurl,
                     type: "POST",
@@ -127,7 +127,6 @@
                     success: function (response) {
                         var itemsList = '';
                         var itemsArray = [];
-                        $(".ajax-loader").hide();
                         $(".btn_view_items,.btn_save,.btn_run_job,.btn_cancel").hide();
                         $(".btn_prev").show();
                         $.each(response, function (index, element) {
@@ -180,6 +179,7 @@
                         paginationHTML = addPagination(totalPages, perPage);
                         $(".items-list:not(.imported-list)").append(paginationHTML);
                         $(".items-list:not(.imported-list)").prepend(paginationHTML);
+                        $(".ajax-loader").hide();
                         $(".publish-status").data('loaded', 'yes');
                     }
                 });
@@ -412,7 +412,7 @@
                 $('<div id="finish-job" title="Info"><p>Empty import job<br />No items to import.</p></div>').dialog({
                     modal: true,
                     buttons: [{
-                        text: "Restart", click: function () {
+                        text: "OK", click: function () {
                             $(this).dialog("close");
                             window.location.reload();
                         }
@@ -496,7 +496,7 @@
                         $('<div id="finish-job" title="Info"><p>Import job complete<br />' + newItemCount + ' items imported.</p></div>').dialog({
                             modal: true,
                             buttons: [{
-                                text: "Restart", click: function () {
+                                text: "OK", click: function () {
                                     $(this).dialog("close");
                                     window.location.reload();
                                 }
@@ -536,7 +536,7 @@
                         $('.imported-progress-info').html('Creating posts');
                         postOnlyImportTimer = setTimeout(function () {
                             checkIfPostOnlyImportDone();
-                        }, 5000);
+                        }, 3000);
                     }
                 }
             });
@@ -875,7 +875,6 @@
                         $(".community-wrap .ajax-loader").show();
                     },
                     success: function (response) {
-                        $(".community-wrap .ajax-loader").hide();
                         console.log("PETER: Updated job with cron_id: " + response);
                     }
                 });
