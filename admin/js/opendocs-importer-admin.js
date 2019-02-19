@@ -1,5 +1,5 @@
 (function ($) {
-    console.log('v1.1');
+
     //Declare global variables
     'use strict';
     var currentPage = 1; // Holds Current page number
@@ -8,7 +8,7 @@
     var collId = '';
     var skippedImports = 0;
     var existingItems = [];
-    var chunkSize = 100;
+    var chunkSize = 80;
     var callbackTimer = '';
     var postOnlyImportTimer = '';
     var checkForErrorsTimer = '';
@@ -130,11 +130,11 @@
                         $(".btn_view_items,.btn_save,.btn_run_job,.btn_cancel").hide();
                         $(".btn_prev").show();
                         $.each(response, function (index, element) {
-                            itemsArray.push([element.id, element.name, element.date, element.existing, element.post_id, element.post_link]);
+                            itemsArray.push([element.id, element.name, element.date, element.existing, element.post_id, element.post_link, element.handle]);
                             allItemsInColl.push(element.id);
                         });
                         $("#allitemIDs").val(allItemsInColl.toString());
-                        var perPage = 100;
+                        var perPage = chunkSize;
                         itemsCount = parseInt(itemsArray.length);
                         var totalPages = Math.ceil(parseInt(itemsArray.length) / perPage); // Get total pages for pagination
                         $(".check-all").attr('curr-page', 'items-0');
@@ -163,7 +163,7 @@
                                 if ($('#ignoredItemIDs').val().split(',').includes(tempArray[j][0])) {
                                     status = "ignore"
                                 }
-                                var $row = '<div class="item-row' + (bExisting ? ' existing ' : '') + '" data-existing="' + bExisting + '">';
+                                var $row = '<div class="item-row' + (bExisting ? ' existing ' : '') + '" data-handle="' + tempArray[j][6] + '" data-existing="' + bExisting + '">';
                                 var $checkboxes = '<div class="item-select"><input type="checkbox" name="item-' + tempArray[j][0] + '" value="' + tempArray[j][0] + '" id="import' + tempArray[j][0] + '"' + ((status == "import") ? ' checked ' : '') + (bExisting ? ' disabled readonly="readonly" ' : '') + ' /></div>';
                                 $checkboxes = $checkboxes + '<div class="item-select"><input type="checkbox" name="item-' + tempArray[j][0] + '" value="' + tempArray[j][0] + '" id="ignore' + tempArray[j][0]  + '"' + ((status == "ignore") ? ' checked ' : '') + (bExisting ? ' disabled readonly="readonly" ' : '') +  '/></div>';
                                 $row = $row + $checkboxes + '<label for="' + tempArray[j][0] + '">' + tempArray[j][1] + '</label>';
@@ -173,7 +173,7 @@
                                     $row = $row + '<div class="item-date"></div>';
                                 }
                                 $row = $row +'</div>';
-                                $(".items-list:not(.imported-list) #items-" + i).append($row);
+                                    $(".items-list:not(.imported-list) #items-" + i).append($row);
                             }
                         }
                         paginationHTML = addPagination(totalPages, perPage);
@@ -528,7 +528,7 @@
                 },
                 timeout: 0,
                 success: function (response) {
-                    console.log('PETER: checkifdone: Got ' + response + ' of '+ this.countItemIds);
+                    //console.log('PETER: checkifdone: Got ' + response + ' of '+ this.countItemIds);
                     if (response == this.countItemIds) {
                         $('.imported-progress-info').html('Creation of posts done, now getting additional fields');
                         clearTimeout(postOnlyImportTimer);

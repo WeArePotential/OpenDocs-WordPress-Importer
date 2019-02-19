@@ -254,19 +254,21 @@ class XML_IDocs_Query implements IDocs_Query_Interface {
 					$id = $item->getElementsByTagName( 'id' );
 					$id = $id->item(0)->nodeValue;
 					$name = $item->getElementsByTagName( 'name' );
-                    $name = $name->item(0)->nodeValue;
-                    $date = $item->getElementsByTagName('lastModified');
-                    $date = $date->item(0)->nodeValue;
-                    $date = date_format(date_create($date), 'd/m/y');
-                    if (array_key_exists($id, $existingItems)) {
-                        $existing = true;
-                        $post_id = $existingItems[$id];
+	                $name = $name->item(0)->nodeValue;
+					$handle = $item->getElementsByTagName( 'handle' );
+					$handle = $handle->item(0)->nodeValue;
+					$date = $item->getElementsByTagName('lastModified');
+	                $date = $date->item(0)->nodeValue;
+	                $date = date_format(date_create($date), 'd/m/y');
+	                if (array_key_exists($id, $existingItems)) {
+	                    $existing = true;
+	                    $post_id = $existingItems[$id];
 			        } else {
-                        $existing = false;
+	                    $existing = false;
 				        $post_id = 0;
 			        }
-					$itemObj = array( 'id' => $id, 'name' => $name, 'date'=> $date, 'existing'=> $existing, 'post_id'=>$post_id, 'post_link'=>get_permalink($post_id));
-                    $items[] = $itemObj;
+					$itemObj = array( 'id' => $id, 'name' => $name, 'date'=> $date, 'existing'=> $existing, 'post_id'=>$post_id, 'post_link'=>get_permalink($post_id), 'handle'=>$handle);
+	                $items[] = $itemObj;
 				endforeach;
 			} 
 		endforeach;
@@ -403,9 +405,9 @@ class XML_IDocs_Query implements IDocs_Query_Interface {
 	        	$name = $name->item(0)->nodeValue;
 				$id = $item->getElementsByTagName( 'id' );
 	        	$id = $id->item(0)->nodeValue;
-				$handleID = $item->getElementsByTagName( 'handle' );
-	        	$handleID = $handleID->item(0)->nodeValue;
-        		$results[$id] = array('name' => $name, 'handle' => 'http://opendocs.ids.ac.uk/opendocs/handle/' . $handleID );
+				$handle = $item->getElementsByTagName( 'handle' );
+	        	$handle = $handle->item(0)->nodeValue;
+        		$results[$id] = array('name' => $name, 'handle' => 'http://opendocs.ids.ac.uk/opendocs/handle/' . $handle );
 			endforeach;
 		}
 		return $results;
@@ -437,12 +439,11 @@ class XML_IDocs_Query implements IDocs_Query_Interface {
 		$fieldMapping = $this->fieldMapping;
 		$itemHandles = $this->itemHandles;
 		$importedCount = count($this->insertedItemIDs);
-		$existingItems = $this->existingItems;
 		$itemCount = $this->itemCount;
 		$itemIDs = $this->itemIDs;
 		
 		$wp_class = new Wordpress_IDocs();
-		error_log('PETER: retrieveValues: '. print_r($fieldMapping,true));
+		//error_log('PETER: retrieveValues: '. print_r($fieldMapping,true));
 
 		//Create field mapping array and retrieve meta data. 
     	foreach( $fieldMapping as $mapping ) : 
@@ -482,7 +483,7 @@ class XML_IDocs_Query implements IDocs_Query_Interface {
     	endforeach;
 		
 		// Create Wordpress Post with retrieved meta data. 
-		$insertedPostID = $wp_class->insertPost($itemID, $itemHandles[$itemID], $fieldValues, $postTypeInfo, $itemCount, $this->insertedItemIDs, $this->itemIDs, $this->itemHandles, $this->cronID );
+		$insertedPostID = $wp_class->insertPost($itemID, $itemHandles[$itemID], $fieldValues, $postTypeInfo, $itemCount, $this->insertedItemIDs, $this->itemIDs, $this->cronID );
 		$this->insertedItemIDs[$itemID] = $insertedPostID;
 		return $insertedPostID;
 	}
@@ -533,10 +534,10 @@ class XML_IDocs_Query implements IDocs_Query_Interface {
     		endif;
     	endforeach;
 		if (!array_key_exists($itemID, $itemHandles)) {
-			$handle                 = $this->getItemHandle( array($itemID) );
+			$handle                 = $this->getItemHandles( array($itemID) );
 			$itemHandles[ $itemID ] = $handle[ $itemID ];
 		}
-    	$insertedPostID = $wp_class->insertPost($itemID, $itemHandles[$itemID], $fieldValues, $postTypeInfo, $itemCount, $this->insertedItemIDs, $this->itemIDs, $this->itemHandles, $this->cronID );
+    	$insertedPostID = $wp_class->insertPost($itemID, $itemHandles[$itemID], $fieldValues, $postTypeInfo, $itemCount, $this->insertedItemIDs, $this->itemIDs, $this->cronID );
 		$this->insertedItemIDs[$itemID] = $insertedPostID;
 		return $insertedPostID;
 	}
@@ -556,7 +557,7 @@ class XML_IDocs_Query implements IDocs_Query_Interface {
 	*
  	* @return int inserted post ID (Wordpress ID)
 	*/
-    public function getItemFiles($importedItems, $fieldMapping, $itemIDs, $itemHandles ) {
+    public function getItemFiles($importedItems, $fieldMapping, $itemIDs ) {
 		
 		$fieldValues = [];
 		
@@ -569,7 +570,7 @@ class XML_IDocs_Query implements IDocs_Query_Interface {
 				endif;
 			endif;
 		endforeach;
-		$itemFiles = $this->getXMLDomDocMultiGetURL($importedItems, $fieldValues, $itemIDs, $itemHandles);
+		$itemFiles = $this->getXMLDomDocMultiGetURL($importedItems, $fieldValues, $itemIDs);
 		return $itemFiles;
     }
 		
@@ -584,26 +585,35 @@ class XML_IDocs_Query implements IDocs_Query_Interface {
 	*
  	* @return array ItemHandles
 	*/
-    public function getItemHandle( $itemIDs ) {
+    public function getItemHandles( $itemIDs ) {
 		$itemHandles = $this->itemHandles;
 		$requests = [];
 		foreach($itemIDs as $itemID) : 
 			$requests[] = $this->APIUrl . '/items/' . $itemID;
 		endforeach;
-    	$itemHandlesDom = $this->getXMLDomDocMulti( $requests );
-		
-		foreach( $itemHandlesDom as $itemHandleDom ) : 
-			if( $itemHandleDom !== -1 ) : 
-    			$itemHandleNodes = $itemHandleDom->getElementsByTagName( 'item' );
-				foreach( $itemHandleNodes as $item ) : 
-	        		$itemHandle = $item->getElementsByTagName( 'handle' );
-	        		$itemHandle = $itemHandle->item(0)->nodeValue;
-					$itemID = $item->getElementsByTagName( 'id' );
-	        		$itemID = $itemID->item(0)->nodeValue;
-					$itemHandles[$itemID] = $itemHandle;
-				endforeach;
-			endif;
-		endforeach;
+
+		$chunk = 30;
+	    $chunks = array_chunk($requests, $chunk);
+	    $chunked_results = [];
+
+	    foreach($chunks as $request) {
+		    $chunked_results[] = $this->getXMLDomDocMulti( $request );
+	    }
+
+		 foreach($chunked_results as $itemHandlesDom) {
+			 foreach ( $itemHandlesDom as $itemHandleDom ) :
+				 if ( $itemHandleDom !== - 1 ) :
+					 $itemHandleNodes = $itemHandleDom->getElementsByTagName( 'item' );
+					 foreach ( $itemHandleNodes as $item ) :
+						 $itemHandle             = $item->getElementsByTagName( 'handle' );
+						 $itemHandle             = $itemHandle->item( 0 )->nodeValue;
+						 $itemID                 = $item->getElementsByTagName( 'id' );
+						 $itemID                 = $itemID->item( 0 )->nodeValue;
+						 $itemHandles[ $itemID ] = $itemHandle;
+					 endforeach;
+				 endif;
+			 endforeach;
+		 }
 		$this->itemHandles = array_merge($itemHandles, $this->itemHandles);
 		return $itemHandles;
     }
@@ -723,6 +733,8 @@ class XML_IDocs_Query implements IDocs_Query_Interface {
         $mh = curl_multi_init();
 		$result = array();
 		$curls = array();
+		$errors = array();
+
 		for( $i = 0; $i < count( $requests ); $i++ ) {
 			$curls[$i] = curl_init();
 			curl_setopt( $curls[$i], CURLOPT_URL, $requests[$i] );
@@ -734,8 +746,8 @@ class XML_IDocs_Query implements IDocs_Query_Interface {
 			//curl_setopt( $curls[$i], CURLOPT_LOW_SPEED_TIME , 10 ); 
 			curl_setopt( $curls[$i], CURLOPT_USERAGENT, "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1; .NET CLR 1.1.4322)" );
         	curl_setopt( $curls[$i], CURLOPT_HTTPHEADER, array( 'Accept: application/xml' ) );
-			curl_setopt( $curls[$i], CURLOPT_CONNECTTIMEOUT, 15 ); 
-        	curl_setopt( $curls[$i], CURLOPT_TIMEOUT, $this->timeout );
+			curl_setopt( $curls[$i], CURLOPT_CONNECTTIMEOUT, 30);
+        	curl_setopt( $curls[$i], CURLOPT_TIMEOUT, $this->timeout * 2 );
 			curl_multi_add_handle( $mh, $curls[$i] );
 		}
 		do {
@@ -751,99 +763,33 @@ class XML_IDocs_Query implements IDocs_Query_Interface {
 				$execReturnValue = curl_multi_exec( $mh, $running );
 			} while ( $execReturnValue == CURLM_CALL_MULTI_PERFORM );
 		}
+		//error_log( 'PETER: getXMLDomDocMulti: Curl tried to get $curls : ' . print_r( count($curls), true ) );
+
 		if (count($curls) > 0) {
+
 			foreach ( $curls as $id => $c ) {
-				$xmlContent = curl_multi_getcontent( $c );
-				$doc        = new DOMDocument();
-				if (strlen($xmlContent)>0) {
-					$doc->loadXML( $xmlContent );
-					$result[] = $doc;
+				$error = curl_error($c);
+				if (!empty($error)) {
+					error_log( 'PETER: getXMLDomDocMulti: Error: '. print_r($error,true));
+					// Try again - it's likley to have been a timeout.
+					// Retrieve it directly in this case.
+					$url = curl_getinfo($c, CURLINFO_EFFECTIVE_URL);
+					$result[] = $this->getXMLDomDoc($url);
+				} else {
+					$xmlContent = curl_multi_getcontent( $c );
+					$doc        = new DOMDocument();
+					if ( strlen( $xmlContent ) > 0 ) {
+						$doc->loadXML( $xmlContent );
+						$result[] = $doc;
+					}
 				}
 				curl_multi_remove_handle( $mh, $c );
 			}
 		}
+		//error_log( 'PETER: getXMLDomDocMulti: Curl got  : ' . print_r( count($result), true ) );
+
 		curl_multi_close( $mh );
 		return $result;
-    }
-	
-	/**
- 	* Retrieves each items file info
- 	*
- 	* Initializes MultiCurl to retrieve file info of items and adds back as Wordpress Post metadata
- 	*
- 	* @since 1.0.0
- 	*
- 	* @param array $importedItems List of imported Wordpress Post IDs
-	* @param array $fileFields File Mapping array
-	* @param array $itemIDs Item ID List
-	* @param array $itemHandles Item Handle List
-	*
-	*/
-	private function getXMLDomDocMultiGetURLOld( $importedItems, $fileFields, $itemIDs, $itemHandles ) {
-		$multi_curl = new MultiCurl();
-		$multi_curl->setHeader('Accept', 'application/xml');
-		$multi_curl->setConcurrency(50);
-		$multi_curl->setConnectTimeout(15);
-		$multi_curl->setTimeout($this->timeout);
-		$multi_curl->setXmlDecoder(false);
-		$multi_curl->setOpt(CURLOPT_HEADER , FALSE);
-		$multi_curl->setOpt(CURLOPT_NOBODY , FALSE);
-		$itemFile = '';
-		$requests = [];
-		$itemFiles = [];
-		$fieldMapping = $this->fieldMapping;
-		
-		// Add each item's file to MultiCurl Get
-		foreach( $itemIDs as $itemID ) {
-			$itemHandle = $itemHandles[$itemID];
-			$multi_curl->addGet( 'https://opendocs.ids.ac.uk/opendocs/bitstream/handle/' . $itemHandle . '/' . $itemID . '?sequence=1' );
-			$requests[$itemID] = 'https://opendocs.ids.ac.uk/opendocs/bitstream/handle/' . $itemHandle . '/' . $itemID . '?sequence=1';
-		}
-		// If retrieval succeeds, do this
-		$multi_curl->success(function ($instance) use ($requests, $importedItems, $itemHandles, $fileFields, &$itemFile) {
-    		$url = $instance->url;
-    		$fileLength = $instance->responseHeaders['Content-Length'];
-			$fileType = $instance->responseHeaders['Content-Type'];
-			$fileLanguage = $instance->responseHeaders['Content-Language'];
-			$fieldValues = [];
-			
-			if( empty( $fileLanguage ) ) : 
-				$fileLanguage = 'N/A';
-			endif;
-			$itemID = array_search( $url, $requests );
-			$itemHandle = $itemHandles[$itemID]; 
-			$itemFile = array( $itemID, $url, $itemHandle, $fileType, $fileLength, $fileLanguage );
-			
-			$insertedPostID = $importedItems[$itemID];	
-			$wp_class = new Wordpress_IDocs();
-			$wp_class->updatePostDownloads($insertedPostID, $fileFields, $itemFile);
-		});
-		// If failed, do this
-		$multi_curl->error(function ($instance) use ($requests, $importedItems, $itemHandles, $fileFields, &$itemFile) {
-			$url = $instance->url;
-			$itemID = array_search( $url, $requests );
-			$itemHandle = $itemHandles[$itemID]; 
-			
-			$fileName = 'https://opendocs.ids.ac.uk/opendocs/bitstream/handle/' . $itemHandle . '/' . $itemID . '?sequence=1';
-			$fileType = '';
-			$fileSize = 0;
-			$fileLanguage = 'en';
-			
-			$itemFile = array( $itemID, $fileName, $itemHandle, '', 0, 'en'); 
-			
-			$insertedPostID = $importedItems[$itemID];	
-			$wp_class = new Wordpress_IDocs();
-			$wp_class->updatePostDownloads($insertedPostID, $fileFields, $itemFile);
-			
-		});
-		$multi_curl->complete(function($instance) use ($requests, $importedItems, &$itemFiles, &$itemFile) {
-			$url = $instance->url;
-			$itemID = array_search( $url, $requests );
-			$insertedPostID = $importedItems[$itemID];
-    		$itemFiles[$insertedPostID] = $itemFile;
-		});
-		$multi_curl->start();
-		return $itemFiles;
     }
 
 	/**
@@ -859,62 +805,70 @@ class XML_IDocs_Query implements IDocs_Query_Interface {
 	 * @param array $itemHandles Item Handle List
 	 *
 	 */
-	private function getXMLDomDocMultiGetURL( $importedItems, $fileFields, $itemIDs, $itemHandles ) {
+	private function getXMLDomDocMultiGetURL( $importedItems, $fileFields, $itemIDs ) {
 
+		ini_set('max_execution_time', 600);
+		//error_log( 'PETER: getXMLDomDocMultiGetURL: Going to work on : ' . print_r( count($itemIDs), true ) );
 		$requests = [];
 		$itemFiles = [];
 		// error_log( 'PETER: getXMLDomDocMultiGetURL: $importedItems: ' . print_r( $importedItems, true ) );
 
 		// Add each item's file to MultiCurl Get
 		foreach( $itemIDs as $itemID ) {
-			// Can't use this, as don't know which item these belong to if doing multiple lookup.
-			// $requests[] = $this->APIUrl . '/items/'.$itemID.'/bitstreams?limit=9999';
 			$requests[] = $this->APIUrl . '/items/'.$itemID.'/?expand=bitstreams';
 		}
-		$results = $this->getXMLDomDocMulti($requests);
-		foreach($results as $itemDOM) {
 
-			$itemObj = simplexml_import_dom($itemDOM);
-			$itemID = (string)$itemObj->id;
-			if (!array_key_exists($itemID, $itemHandles)) {
-				$handle                 = $this->getItemHandle( array($itemID) );
-				$itemHandles[ $itemID ] = $handle[ $itemID ];
-			}
-			$itemHandle = $itemHandles[ $itemID ];
+		$results = [];
+		// Get 20 at a time to avoid timeouts as far as possible
+		$chunk = 20;
+		$chunks = array_chunk($requests, $chunk);
+		$chunked_results = [];
+		foreach($chunks as $request) {
+			$result = $this->getXMLDomDocMulti( $request );
+			$chunked_results[] = $result;
+		}
+		foreach($chunked_results as $results) {
+			foreach ( $results as $itemDOM ) {
+				$itemObj = simplexml_import_dom( $itemDOM );
+				$itemID = (string) $itemObj->id;
+				$itemHandle = (string) $itemObj->handle;
+				/* No longer need itemHanldes as we're getting it from the item XML
+				 * if ( ! array_key_exists( $itemID, $itemHandles ) ) {
+				 * 	$itemHandles[ $itemID ] = $itemHandle;
+				 * }
+				 */
+				//error_log( 'PETER: getXMLDomDocMultiGetURL: $item: ' . print_r( $itemID, true ) );
 
-			//error_log( 'PETER: getXMLDomDocMultiGetURL: $item: ' . print_r( $itemID, true ) );
+				$sequenceID   = 0;
+				$fileType     = '';
+				$fileLength   = 0;
+				$fileLanguage = 'en';
+				$fileName     = '';
 
-			$sequenceID   = 0;
-			$fileName     = '';
-			$fileType     = '';
-			$fileLength   = 0;
-			$fileUrl      = '';
-			$fileLanguage = 'en';
-			$itemFile     = [];
-
-			foreach ( $itemObj->bitstreams as $bitstream) {
-				$bitstream = json_decode( json_encode( $bitstream ), true );
-				// Convert and unconvert item xml to get an array
-				//error_log( 'PETER: getXMLDomDocMultiGetURL: $item: ' . print_r( $bitstream, true ) );
-				foreach ( $bitstream as $key => $value ) {
-					if ( $key == 'bundleName' && $value == "ORIGINAL" ) {
-						$sequenceID = $bitstream['sequenceId'];
-						$fileType   = $bitstream['format'];
-						$fileLength = $bitstream['sizeBytes'];
-						//error_log( 'PETER: getXMLDomDocMultiGetURL: $item: '. $itemID. ': $bitstream: ' . print_r( $bitstream, true ) );
+				// TODO: Get all the urls for an item  - there may be more than one.
+				foreach ( $itemObj->bitstreams as $bitstream ) {
+					// Convert and unconvert item xml to get a php array
+					$bitstream = json_decode( json_encode( $bitstream ), true );
+					foreach ( $bitstream as $key => $value ) {
+						if ( $key == 'bundleName' && $value == "ORIGINAL" ) {
+							$sequenceID = $bitstream['sequenceId'];
+							$fileType   = $bitstream['format'];
+							$fileLength = $bitstream['sizeBytes'];
+							$fileName   = $bitstream['name']; // Used to build the user-friendly url
+						}
 					}
 				}
-			}
-			if ( $sequenceID > 0 ) {
-				$fileUrl = 'https://opendocs.ids.ac.uk/opendocs/bitstream/handle/' . $itemHandle . '/' . $itemID . '?sequence=' . $sequenceID;
-				//error_log( 'PETER: getXMLDomDocMultiGetURL: $sequenceId: ' . print_r( $sequenceID, true ) );
-				$itemFile       = array( $itemID, $fileUrl, $itemHandle, $fileType, $fileLength, $fileLanguage );
-				$itemFiles[]    = $itemFile;
-				$insertedPostID = $importedItems[$itemID];
-				$wp_class       = new Wordpress_IDocs();
-				$wp_class->updatePostDownloads( $insertedPostID, $fileFields, $itemFile );
-			} else {
-				error_log( 'PETER: getXMLDomDocMultiGetURL: Couldn\'t find bitstream for item : ' . $itemID );
+				if ( $sequenceID > 0 ) {
+					$fileUrl = 'https://opendocs.ids.ac.uk/opendocs/bitstream/handle/' . $itemHandle . '/' . urlencode($fileName) . '?sequence=' . $sequenceID;
+					$itemFile       = array( 'itemID'=>$itemID, 'fileUrl'=>$fileUrl, 'handle'=>$itemHandle, 'fileType'=>$fileType, 'fileSize'=>$fileLength, 'fileLanguage'=>$fileLanguage );
+					$itemFiles[]    = $itemFile;
+					$insertedPostID = $importedItems[ $itemID ];
+					//error_log( 'PETER: getXMLDomDocMultiGetURL: $insertedPostID: '. $insertedPostID  );
+					$wp_class = new Wordpress_IDocs();
+					$wp_class->updatePostDownloads( $insertedPostID, $fileFields, $itemFile );
+				} else {
+					error_log( 'PETER: getXMLDomDocMultiGetURL: Couldn\'t find bitstream for item : ' . $itemID );
+				}
 			}
 		}
 		return $itemFiles;

@@ -148,7 +148,7 @@ class Wordpress_IDocs implements IDocs_CRUD {
 	 * @return array List of inserted Wordpress IDs
 	 */
 	public function insertItem( $items, $itemIDs ) {
-		error_log( 'PETER: insertItem: ' . print_r( $items, true ) . print_r( $itemIDs, true ) );
+		// error_log( 'PETER: insertItem: ' . print_r( $items, true ) . print_r( $itemIDs, true ) );
 		$fieldMappings   = $items->postMapping;
 		$itemCount       = count( $items->itemID );
 		$mappingArray    = [];
@@ -199,7 +199,7 @@ class Wordpress_IDocs implements IDocs_CRUD {
 
 		$itemObj = new XML_IDocs_Query();
 		$itemObj->setTimeout( 300 );
-		$itemHandleList = $itemObj->getItemHandle( $itemList );
+		$itemHandleList = $itemObj->getItemHandles( $itemList );
 
 		foreach ( $mappingArray as $fieldMapping ) :
 			// We need to make sure we have both an associative array (with names) as well as positions.
@@ -293,7 +293,7 @@ class Wordpress_IDocs implements IDocs_CRUD {
 	 *
 	 * @return int inserted Wordpress Post ID
 	 */
-	public function insertPost( $itemID, $itemHandle, $fieldValues, $postTypeInfo, $itemCount, $importedItems, $itemIDs, $itemHandles, $cronID ) {
+	public function insertPost( $itemID, $itemHandle, $fieldValues, $postTypeInfo, $itemCount, $importedItems, $itemIDs, $cronID ) {
 		if ( ! empty( $fieldValues ) ) :
 
 			$mergedArray   = [];
@@ -398,12 +398,12 @@ class Wordpress_IDocs implements IDocs_CRUD {
 
 			add_post_meta( $insertedPostID, 'odocs_item_date', $date );
 			add_post_meta( $insertedPostID, 'odocs_item_id', $itemID );
-				if ( $hasFileURL == 1 ) :
+			//if ( $hasFileURL == 1 ) :
 				add_post_meta( $insertedPostID, 'odocs_has_file', 1 );
-			endif;
+			//endif;
 
 			if ( $cronID == 0 ) {
-				error_log( 'PETER: insertPost: Don\'t need to insertCollectionInDB: ' . $cronID );
+				//error_log( 'PETER: insertPost: Don\'t need to insertCollectionInDB: ' . $cronID );
 				//$cronID = $this->insertCollectionInDB($postTypeInfo, $importedItems, $hasFileURL);
 			}
 
@@ -411,11 +411,9 @@ class Wordpress_IDocs implements IDocs_CRUD {
 			$postMetaUpdate = $this->updatePostFields( $insertedPostID, $itemHandle, $mergedArray, $hasFileURL );
 
 			if ( $itemCount == $importedCount ) :
-				//if ( $hasFileURL == 1 ) :
 				$itemObj = new XML_IDocs_Query();
 				$itemObj->setTimeout( 300 );
-				$downloadFile = $itemObj->getItemFiles( $importedItems, $fieldValues, $itemIDs, $itemHandles );
-				//endif;
+				$downloadFile = $itemObj->getItemFiles( $importedItems, $fieldValues, $itemIDs );
 			endif;
 
 			return $insertedPostID;
@@ -529,16 +527,16 @@ class Wordpress_IDocs implements IDocs_CRUD {
 		$repeaterCounter = 0;
 		foreach ( $fieldMapping as $postMapping ) :
 			if ( $postMapping['field_name'] === 'full_text_url' || $postMapping['field_name'] === 'full_text_type' || $postMapping['field_name'] === 'full_text_size' ) :
-				$fileLanguage = strtolower( $fileDownload[5] );
+				$fileLanguage = strtolower( $fileDownload['fileLanguage'] );
 				if ( $postMapping['field_name'] === 'full_text_url' ) :
-					$postMapping['field_value'] = $fileDownload[1];
-					$fieldValue                 = $fileDownload[1];
+					$postMapping['field_value'] = $fileDownload['fileUrl'];
+					$fieldValue                 = $fileDownload['fileUrl'];
 				elseif ( $postMapping['field_name'] === 'full_text_type' ) :
-					$postMapping['field_value'] = $fileDownload[3];
-					$fieldValue                 = $fileDownload[3];
-				else :
-					$postMapping['field_value'] = $fileDownload[4];
-					$fieldValue                 = $fileDownload[4];
+					$postMapping['field_value'] = $fileDownload['fileType'];
+					$fieldValue                 = $fileDownload['fileType'];
+				elseif ( $postMapping['field_name'] === 'full_text_type' ):
+					$postMapping['field_value'] = $fileDownload['fileSize'];
+					$fieldValue                 = $fileDownload['fileSize'];
 				endif;
 				if ( array_key_exists( 'field_type', $postMapping ) ) :
 					if ( $postMapping['field_type'] == 'repeater' ) :
@@ -1012,11 +1010,10 @@ class Wordpress_IDocs implements IDocs_CRUD {
 	public function checkIfImportComplete( $toImportItemIDs ) {
 		$importCount     = 0;
 		$existingItemIDs = $this->getExistingItemIds();
-		error_log( 'PETER: checkIfImportComplete: Check if ' . ' is in ' . print_r( $toImportItemIDs, true ) );
 		$itemIDs = explode( ',', $toImportItemIDs );
 		foreach ( $itemIDs as $id ) {
 			//error_log('PETER: checkIfImportComplete: Check if '. $id .' is in '.print_r($existingItemIDs, true) );
-			error_log( 'PETER: checkIfImportComplete: Answer ' . in_array( $id, $existingItemIDs ) );
+			//error_log( 'PETER: checkIfImportComplete: Answer ' . in_array( $id, $existingItemIDs ) );
 			if ( in_array( $id, $existingItemIDs ) ) {
 				$importCount ++;
 			}
