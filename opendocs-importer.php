@@ -9,7 +9,7 @@
  * Plugin Name:       OpenDocs Importer
  * Plugin URI:        https://opendocs.ids.ac.uk/
  * Description:       Plugin imports content from the IDS Repository OpenDocs
- * Version:           3.0.0
+ * Version:           3.0.3
  * Author:            We Are Potential
  * Author URI:        http://wearepotential.org/
  * License:           GPL-2.0+
@@ -32,6 +32,28 @@ function my_add_weekly( $schedules ) {
 	return $schedules;
 }
 add_filter( 'cron_schedules', 'my_add_weekly' );
+
+add_filter( 'parse_query', 'odocs_parse_filter' );
+function odocs_parse_filter( $query ) {
+    global $pagenow;
+    $current_page = isset( $_GET['post_type'] ) ? $_GET['post_type'] : '';
+
+    if ( is_admin() &&
+        //'competition' == $current_page &&
+        'edit.php' == $pagenow &&
+        isset( $_GET['odocs_item_id'] ) &&
+        $_GET['odocs_item_id'] != '' ) {
+        $itemids    = explode( ',', urldecode( $_GET['odocs_item_id'] ) );
+        $meta_query = array(
+            'key'     => 'odocs_item_id',
+            'value'   => $itemids,
+            'compare' => 'IN'
+        );
+        foreach ( $meta_query as $k => $v ) {
+            $query->set( 'meta_' . $k, $v );
+        }
+    }
+}
 
 /**
  * The code that runs during plugin activation.
