@@ -732,7 +732,7 @@ class Wordpress_IDocs implements IDocs_CRUD {
 		$fieldMappings     = $items->postMapping;
 		$cronID            = $items->cronID;
 		$jobName           = $items->jobName;
-		error_log( 'PETER: Update job, cron id is ' . $cronID . ': ' . print_r( $items, true ) );
+		// error_log( 'PETER: Update job, cron id is ' . $cronID . ': ' . print_r( $items, true ) );
 
 		$mappingList = array();
 		foreach ( $selectedPostTypes as $postType ) :

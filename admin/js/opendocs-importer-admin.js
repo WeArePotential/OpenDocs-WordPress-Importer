@@ -349,16 +349,17 @@
 
             addIgnoredItems(newIgnoredItemIds);
             newIgnoredItemCount = newIgnoredItemIds.length;
+            var postType = $(".field-mapping .post_types").val();
 
             toImportPostItemIDs.push({
-                'postType': $(".field-mapping .post_types").val(),
+                'postType': postType,
                 'collectionID': $('.field-mapping').data('collectionid'),
                 'itemIDs': toImportItemIDs,
                 'newIgnoredItems': newIgnoredItemIds
             });
             $("#toImportItemIDs").val(toImportItemIDs);
 
-            console.log("To import " + toImportCount + " of: " + totalRecords + ", skipping ignored: " + newIgnoredItemCount);
+            console.log("To import " + toImportCount + " of: " + totalRecords + ", into " + postType + ", skipping ignored: " + newIgnoredItemCount);
 
             if (toImportCount > 0) {
 
@@ -380,6 +381,7 @@
                     type: "POST",
                     data: datatoSend,
                     dataType: 'json',
+                    postType: postType,
                     timeout: 0,
                     beforeSend: function () {
                         //console.log('PETER: Prepare to store to imported items');
@@ -388,7 +390,7 @@
                     },
                     success: function (response) {
                         callbackTimer = setTimeout(function () {
-                            checkForImportedPosts(toImportCount, newItemCount);
+                            checkForImportedPosts(toImportCount, newItemCount, postType);
                         }, 2000);
                         postOnlyImportTimer = setTimeout(function () {
                             checkIfPostOnlyImportDone();
@@ -397,7 +399,7 @@
                     error: function (jqXHR, exception) {
                         if (jqXHR.status !== 500) {
                             callbackTimer = setTimeout(function () {
-                                checkForImportedPosts(toImportCount, newItemCount);
+                                checkForImportedPosts(toImportCount, newItemCount, postType);
                             }, 2000);
                             postOnlyImportTimer = setTimeout(function () {
                                 checkIfPostOnlyImportDone();
@@ -471,10 +473,9 @@
             });
         }
 
-        function checkForImportedPosts(totalRecords, newItemCount, postType = 'doc_lib') {
+        function checkForImportedPosts(totalRecords, newItemCount, postType) {
             var itemIDs = $("#toImportItemIDs").val();
             var skippedMSG = '';
-
             $.ajax({
                 url: ajaxurl,
                 type: "POST",
@@ -487,10 +488,11 @@
                 timeout: 0,
                 success: function (response) {
                     var progress = parseInt(response) / newItemCount;
+                    console.log('Type:' + postType);
                     progress = Math.round(progress * 100);
                     successfullImports = response;
                     $(".progress-bar .progress").css("width", progress + "%").html(progress + "%");
-                    console.log("PETER: Item Count: " + newItemCount + ", Imported: " + response);
+                    console.log("PETER: Item Count: " + newItemCount + ", Imported: " + response + " into type " + postType);
 
                     $('.imported-progress').html('Imported ' + response + ' items of ' + newItemCount + skippedMSG);
                     if (response == newItemCount) {
@@ -507,13 +509,13 @@
                         });
                     } else {
                         callbackTimer = setTimeout(function () {
-                            checkForImportedPosts(totalRecords, newItemCount);
+                            checkForImportedPosts(totalRecords, newItemCount, postType);
                         }, 5000);
                     }
                 },
                 error: function (jqXHR, exception) {
                     callbackTimer = setTimeout(function () {
-                        checkForImportedPosts(totalRecords, newItemCount);
+                        checkForImportedPosts(totalRecords, newItemCount, postType);
                     }, 5000);
                 }
             });
