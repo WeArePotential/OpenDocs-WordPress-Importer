@@ -471,13 +471,15 @@
             });
         }
 
-        function checkForImportedPosts(totalRecords, newItemCount) {
+        function checkForImportedPosts(totalRecords, newItemCount, postType = 'doc_lib') {
             var itemIDs = $("#toImportItemIDs").val();
             var skippedMSG = '';
 
             $.ajax({
                 url: ajaxurl,
                 type: "POST",
+                itemIDs: itemIDs,
+                postType: postType,
                 data: {
                     'action': 'checkIfImportComplete',
                     'data': itemIDs,
@@ -493,9 +495,8 @@
                     $('.imported-progress').html('Imported ' + response + ' items of ' + newItemCount + skippedMSG);
                     if (response == newItemCount) {
                         clearTimeout(callbackTimer);
-                        console.log('PETER: checkForImportedPosts: Now have all imported: Do modal');
                         //showImportList(itemIDs);
-                        $('<div id="finish-job" title="Info"><p>Import job complete<br />' + newItemCount + ' items imported.</p></div>').dialog({
+                        $('<div id="finish-job" title="Info"><p>Import job complete<br />' + newItemCount + ' items imported.</p><p><a target="_blank" href="/wp-admin/edit.php?post_type=' + postType + '&odocs_item_id='+ encodeURI(itemIDs) +'">View imported posts</a></p></div>').dialog({
                             modal: true,
                             buttons: [{
                                 text: "OK", click: function () {
@@ -660,6 +661,7 @@
                     });
                 }
             }
+
             collectionNames.push($(".job-title").val());
 
             console.log("Schedule: " + $('field-mapping').find('.radio-when:checked').val());
