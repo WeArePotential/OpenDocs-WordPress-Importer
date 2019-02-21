@@ -23,6 +23,7 @@ if ( ! defined( 'WPINC' ) ) {
 	die;
 }
 
+add_filter( 'cron_schedules', 'my_add_weekly' );
 function my_add_weekly( $schedules ) {
 	// add a 'weekly' schedule to the existing set
 	$schedules['thirty'] = array(
@@ -31,7 +32,6 @@ function my_add_weekly( $schedules ) {
 	);
 	return $schedules;
 }
-add_filter( 'cron_schedules', 'my_add_weekly' );
 
 add_filter( 'parse_query', 'odocs_parse_filter' );
 function odocs_parse_filter( $query ) {

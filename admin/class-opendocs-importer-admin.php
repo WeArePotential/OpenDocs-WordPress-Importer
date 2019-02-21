@@ -115,7 +115,7 @@ class OpenDocs_Importer_Admin {
 			$this,
 			'admin_menu_callback'
 		), 'dashicons-media-document' );
-		$this->cron_menu_suffix     = add_submenu_page( 'opendocs_import', 'Field Names', 'Field Names', 'manage_options', 'odocs3_field_names', array(
+		$this->cron_menu_suffix     = add_submenu_page( 'opendocs_import', 'Field Names', 'Field Names', 'manage_options', 'odocs_field_names', array(
 			$this,
 			'admin_odocs_field_names_callback'
 		) );

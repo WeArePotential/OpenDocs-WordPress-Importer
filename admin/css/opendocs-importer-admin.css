@@ -443,13 +443,13 @@
 	display: inline-block;  
 }
 
-.items-list label {
+.items-list div.item-title {
 	display: inline-block;
 	float: left;
 	width: 78%;
 	margin: 0 1% 0 1%;
 }
-.items-list .existing label {
+.items-list .existing div.item-title {
 	opacity: 0.7;
 	font-style: italic;
 }
