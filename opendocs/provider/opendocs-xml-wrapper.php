@@ -533,6 +533,7 @@ class XML_IDocs_Query implements IDocs_Query_Interface {
 	    		endforeach;
     		endif;
     	endforeach;
+
 		if (!array_key_exists($itemID, $itemHandles)) {
 			$handle                 = $this->getItemHandles( array($itemID) );
 			$itemHandles[ $itemID ] = $handle[ $itemID ];
@@ -853,14 +854,14 @@ class XML_IDocs_Query implements IDocs_Query_Interface {
 						if ( $key == 'bundleName' && $value == "ORIGINAL" ) {
 							$sequenceID = $bitstream['sequenceId'];
 							$fileType   = $bitstream['format'];
-							$fileLength = $bitstream['sizeBytes'];
+							$fileSize = (is_numeric($bitstream['sizeBytes']) ? OpenDocs_Utils::human_filesize($bitstream['sizeBytes']) : 0);
 							$fileName   = $bitstream['name']; // Used to build the user-friendly url
 						}
 					}
 				}
 				if ( $sequenceID > 0 ) {
 					$fileUrl = 'https://opendocs.ids.ac.uk/opendocs/bitstream/handle/' . $itemHandle . '/' . urlencode($fileName) . '?sequence=' . $sequenceID;
-					$itemFile       = array( 'itemID'=>$itemID, 'fileUrl'=>$fileUrl, 'handle'=>$itemHandle, 'fileType'=>$fileType, 'fileSize'=>$fileLength, 'fileLanguage'=>$fileLanguage );
+					$itemFile       = array( 'itemID'=>$itemID, 'fileUrl'=>$fileUrl, 'handle'=>$itemHandle, 'fileType'=>$fileType, 'fileSize'=>$fileSize, 'fileLanguage'=>$fileLanguage );
 					$itemFiles[]    = $itemFile;
 					$insertedPostID = $importedItems[ $itemID ];
 					//error_log( 'PETER: getXMLDomDocMultiGetURL: $insertedPostID: '. $insertedPostID  );

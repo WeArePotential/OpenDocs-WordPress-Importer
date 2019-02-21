@@ -101,7 +101,7 @@ class Wordpress_IDocs implements IDocs_CRUD {
 	 */
 	public function deleteCRONJob( $cronID ) {
 		global $wpdb;
-		$tableName = $wpdb->prefix . 'odocs3';
+		$tableName = $wpdb->prefix . 'odocs';
 		$isDeleted = $wpdb->delete( $tableName,
 			array(
 				'id' => $cronID,
@@ -129,7 +129,7 @@ class Wordpress_IDocs implements IDocs_CRUD {
 	 */
 	public function getCRONImports() {
 		global $wpdb;
-		$tableName   = $wpdb->prefix . 'odocs3';
+		$tableName   = $wpdb->prefix . 'odocs';
 		$importsList = $wpdb->get_results( "SELECT * FROM $tableName" );
 
 		return $importsList;
@@ -305,7 +305,6 @@ class Wordpress_IDocs implements IDocs_CRUD {
 			$importedCount = count( $importedItems );
 			$downloadFile  = '';
 
-
 			foreach ( $fieldValues as $postMapping ) :
 				if ( ! array_key_exists( $postMapping['field_id'], $mergedArray ) ) :
 					$mergedArray[ $postMapping['field_id'] ] = $postMapping;
@@ -335,7 +334,6 @@ class Wordpress_IDocs implements IDocs_CRUD {
 				endif;
 			endforeach;
 
-
 			foreach ( $mergedArray as $key => $postMapping ) :
 				switch ( $key ) :
 					case 'Title' :
@@ -363,7 +361,6 @@ class Wordpress_IDocs implements IDocs_CRUD {
 						$date = strtotime( $date );
 						break;
 					case 'Content' :
-
 						if ( is_array( $postMapping['lang'] ) ) :
 							$langIndex = 0;
 							if ( array_search( 'en', $postMapping['lang'] ) !== false ) :
@@ -377,7 +374,6 @@ class Wordpress_IDocs implements IDocs_CRUD {
 						else :
 							$content .= $postMapping['field_value'];
 						endif;
-
 						break;
 				endswitch;
 			endforeach;
@@ -398,9 +394,7 @@ class Wordpress_IDocs implements IDocs_CRUD {
 
 			add_post_meta( $insertedPostID, 'odocs_item_date', $date );
 			add_post_meta( $insertedPostID, 'odocs_item_id', $itemID );
-			//if ( $hasFileURL == 1 ) :
-				add_post_meta( $insertedPostID, 'odocs_has_file', 1 );
-			//endif;
+			add_post_meta( $insertedPostID, 'odocs_has_file', $hasFileURL );
 
 			if ( $cronID == 0 ) {
 				//error_log( 'PETER: insertPost: Don\'t need to insertCollectionInDB: ' . $cronID );
@@ -448,19 +442,36 @@ class Wordpress_IDocs implements IDocs_CRUD {
 		foreach ( $fieldsArray as $postMapping ) :
 			$fieldValue = $postMapping['field_value'];
 			if ( $postMapping['field_id'] !== 'Title' && $postMapping['field_id'] !== 'Date' && $postMapping['field_id'] !== 'Content' && $postMapping['field_name'] !== 'full_text_url' && $postMapping['field_name'] !== 'full_text_type' && $postMapping['field_name'] !== 'full_text_size' ) :
-
 				if ( array_key_exists( 'field_type', $postMapping ) ) :
 					// if taxonomy field type, insert comma separated list of terms
 					if ( $postMapping['field_type'] == 'taxonomy' ) :
-						if ( $postMapping['lang'] == 'N/A' || $postMapping['lang'] == 'en' || $postMapping['lang'] == 'en_GB' ) :
+						// Ignore LANG for taxonomy terms
+						// TODO: Sort out language stuff
+						// if ( $postMapping['lang'] == 'N/A' || $postMapping['lang'] == 'en' || $postMapping['lang'] == 'en_GB' ) :
 							// Pass taxonomy names to filter, to allow pluggable
-							$fieldValue  = apply_filters( 'odocs_taxonomy', $fieldValue, $postMapping['field_id'] );
-							$term_ids    = $this->getTermIDsByName( $fieldValue, $postMapping['field_id'] );
-							$categorySet = wp_set_object_terms( $insertedPostID, $term_ids, $postMapping['field_id'], true );
-							if ( ! is_wp_error( $categorySet ) ) :
-								$isUpdated = 1;
-							endif;
-						endif;
+							if (!is_array($fieldValue)) {
+								$fieldValues = array($fieldValue);
+							} else {
+								$fieldValues = $fieldValue;
+							}
+							foreach($fieldValues  as $fieldValue) {
+								if ( $postMapping['field_name'] == 'dc.contributor.author' ) {
+									// WP doesn't allow a comma in taxonomy terms
+									// If we have an author, reverse the strings and remove the comma. .
+									$fieldValueParts = explode( ',', $fieldValue );
+									$fieldValue      = '';
+									foreach ( array_reverse( $fieldValueParts ) as $part ) {
+										$fieldValue .= ( strlen( $fieldValue ) > 0 ? ' ' : '' ) . $part;
+									}
+								}
+								$fieldValue  = apply_filters( 'odocs_taxonomy', $fieldValue, $postMapping['field_id'] );
+								$term_ids    = $this->getTermIDsByName( $fieldValue, $postMapping['field_id'] );
+								$categorySet = wp_set_object_terms( $insertedPostID, $term_ids, $postMapping['field_id'], true );
+								if ( ! is_wp_error( $categorySet ) ) :
+									$isUpdated = 1;
+								endif;
+							}
+						//endif;
 					// if repeater type, make array of sub_field_id => value
 					elseif ( $postMapping['field_type'] == 'repeater' ) :
 						$sub_fields      = $postMapping['sub_fields'];
@@ -504,7 +515,6 @@ class Wordpress_IDocs implements IDocs_CRUD {
 		endforeach;
 		// Add meta (hidden from ACF)
 		add_post_meta( $insertedPostID, 'odocs_item_handle', $itemHandle );
-
 		return $isUpdated;
 	}
 
@@ -534,7 +544,7 @@ class Wordpress_IDocs implements IDocs_CRUD {
 				elseif ( $postMapping['field_name'] === 'full_text_type' ) :
 					$postMapping['field_value'] = $fileDownload['fileType'];
 					$fieldValue                 = $fileDownload['fileType'];
-				elseif ( $postMapping['field_name'] === 'full_text_type' ):
+				elseif ( $postMapping['field_name'] === 'full_text_size' ):
 					$postMapping['field_value'] = $fileDownload['fileSize'];
 					$fieldValue                 = $fileDownload['fileSize'];
 				endif;
@@ -585,7 +595,7 @@ class Wordpress_IDocs implements IDocs_CRUD {
 	 */
 	public function insertCollectionInDB( $postTypeInfo, $fieldMappings, $hasFileURL ) {
 		global $wpdb;
-		$tableName    = $wpdb->prefix . 'odocs3';
+		$tableName    = $wpdb->prefix . 'odocs';
 		$options      = array(
 			'postType'     => $postTypeInfo->postType,
 			'postTypeName' => $postTypeInfo->postTypeName,
@@ -691,7 +701,7 @@ class Wordpress_IDocs implements IDocs_CRUD {
 	 */
 	public function viewImportedItemsInCollection( $cronID ) {
 		global $wpdb;
-		$tableName  = $wpdb->prefix . 'odocs3_iteminfo';
+		$tableName  = $wpdb->prefix . 'odocs_iteminfo';
 		$itemIDs    = [];
 		$importList = $wpdb->get_results( "SELECT itemID FROM $tableName WHERE cronID = $cronID" );
 		foreach ( $importList as $importedID ) :
@@ -717,7 +727,7 @@ class Wordpress_IDocs implements IDocs_CRUD {
 	 */
 	public function updateImportJob( $items ) {
 		global $wpdb;
-		$tableName         = $wpdb->prefix . 'odocs3';
+		$tableName         = $wpdb->prefix . 'odocs';
 		$selectedPostTypes = $items->postType;
 		$fieldMappings     = $items->postMapping;
 		$cronID            = $items->cronID;
@@ -827,7 +837,7 @@ class Wordpress_IDocs implements IDocs_CRUD {
 
 	public function getCRONSchedule() {
 		global $wpdb;
-		$tableName      = $wpdb->prefix . 'odocs3';
+		$tableName      = $wpdb->prefix . 'odocs';
 		$importList     = $wpdb->get_results( "SELECT * FROM $tableName" );
 		$importSchedule = [];
 		$weekDays       = array(
@@ -868,7 +878,7 @@ class Wordpress_IDocs implements IDocs_CRUD {
 	public function isCollectionInCRON( $collectionID ) {
 		global $wpdb;
 		$inCron     = - 1;
-		$tableName  = $wpdb->prefix . 'odocs3';
+		$tableName  = $wpdb->prefix . 'odocs';
 		$importList = $wpdb->get_results( "SELECT * FROM $tableName WHERE collectionID = $collectionID" );
 		foreach ( $importList as $import ) :
 			$collectionOption = json_decode( $import->options );
@@ -1155,7 +1165,7 @@ class Wordpress_IDocs implements IDocs_CRUD {
 	public function getFieldLabels( $onlyIDs = false ) {
 		global $wpdb;
 		$fieldLabels    = [];
-		$tableName      = $wpdb->prefix . 'odocs3_field_names';
+		$tableName      = $wpdb->prefix . 'odocs_field_names';
 		$fieldLabelRows = $wpdb->get_results( "SELECT * FROM $tableName" );
 		foreach ( $fieldLabelRows as $fieldLabelRow ) :
 			$fieldLabels[] = array(
@@ -1172,7 +1182,7 @@ class Wordpress_IDocs implements IDocs_CRUD {
 	public function getFieldLabelsList() {
 		global $wpdb;
 		$fieldLabels    = [];
-		$tableName      = $wpdb->prefix . 'odocs3_field_names';
+		$tableName      = $wpdb->prefix . 'odocs_field_names';
 		$fieldLabelRows = $wpdb->get_results( "SELECT * FROM $tableName" );
 		foreach ( $fieldLabelRows as $fieldLabelRow ) :
 			$fieldLabels[ $fieldLabelRow->fieldName ] = $fieldLabelRow->fieldLabel;
@@ -1183,7 +1193,7 @@ class Wordpress_IDocs implements IDocs_CRUD {
 
 	public function getCollectionName( $collectionID ) {
 		global $wpdb;
-		$tableName = $wpdb->prefix . 'odocs3';
+		$tableName = $wpdb->prefix . 'odocs';
 		$sql       = "SELECT collectionName FROM $tableName WHERE collectionId LIKE '$collectionID'";
 		$results = $wpdb->get_results( $sql ) or die( mysql_error() );
 		foreach ( $results as $result ) {
@@ -1196,7 +1206,7 @@ class Wordpress_IDocs implements IDocs_CRUD {
 	public function saveFieldLabels( $labels ) {
 		global $wpdb;
 		$insertedFieldLabels = [];
-		$tableName           = $wpdb->prefix . 'odocs3_field_names';
+		$tableName           = $wpdb->prefix . 'odocs_field_names';
 		foreach ( $labels as $label ) :
 			$wpdb->insert( $tableName,
 				array(
@@ -1218,7 +1228,7 @@ class Wordpress_IDocs implements IDocs_CRUD {
 
 	public function deleteFieldLabel( $fieldLabel ) {
 		global $wpdb;
-		$tableName  = $wpdb->prefix . 'odocs3_field_names';
+		$tableName  = $wpdb->prefix . 'odocs_field_names';
 		$deletedRow = $wpdb->delete( $tableName,
 			array( 'id' => $fieldLabel ),
 			array( '%d' )

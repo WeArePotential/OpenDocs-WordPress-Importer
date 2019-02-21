@@ -92,7 +92,7 @@
 							<a href="#">Title</a>
 						</div>
 						<div class="header-date">
-							<a href="#">Post</a>
+							<a href="#">View</a>
 						</div>
 					</div>
 				</div>

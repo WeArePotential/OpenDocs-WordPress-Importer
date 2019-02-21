@@ -2,6 +2,7 @@
 
     //Declare global variables
     'use strict';
+    var apiurl = 'https://opendocs.ids.ac.uk/opendocs/handle/';
     var currentPage = 1; // Holds Current page number
     var cfields = ['Title', 'Date', 'Content']; // Default fields
     var taxFields = [];
@@ -166,14 +167,15 @@
                                 var $row = '<div class="item-row' + (bExisting ? ' existing ' : '') + '" data-handle="' + tempArray[j][6] + '" data-existing="' + bExisting + '">';
                                 var $checkboxes = '<div class="item-select"><input type="checkbox" name="item-' + tempArray[j][0] + '" value="' + tempArray[j][0] + '" id="import' + tempArray[j][0] + '"' + ((status == "import") ? ' checked ' : '') + (bExisting ? ' disabled readonly="readonly" ' : '') + ' /></div>';
                                 $checkboxes = $checkboxes + '<div class="item-select"><input type="checkbox" name="item-' + tempArray[j][0] + '" value="' + tempArray[j][0] + '" id="ignore' + tempArray[j][0]  + '"' + ((status == "ignore") ? ' checked ' : '') + (bExisting ? ' disabled readonly="readonly" ' : '') +  '/></div>';
-                                $row = $row + $checkboxes + '<label for="' + tempArray[j][0] + '">' + tempArray[j][1] + '</label>';
+                                $row = $row + $checkboxes + '<div class="item-title" for="' + tempArray[j][0] + '">' + tempArray[j][1] + '</div>';
+                                $row = $row + '<div class="item-date">';
+                                $row = $row + '<a href="' + apiurl + tempArray[j][6] + '?show=full" title="View on OpenDocs" target="opendocs">Item</a>';
                                 if (bExisting) {
-                                    $row = $row +'<div class="item-date"><a href="' + tempArray[j][5] + '" target="_blank">View post</a></div>';
-                                } else {
-                                    $row = $row + '<div class="item-date"></div>';
+                                    $row = $row + '&nbsp;|&nbsp;<a href="' + tempArray[j][5] + '" target="_blank">Post</a>';
                                 }
-                                $row = $row +'</div>';
-                                    $(".items-list:not(.imported-list) #items-" + i).append($row);
+                                $row = $row + '</div>';
+                                $row = $row + '</div>';
+                                $(".items-list:not(.imported-list) #items-" + i).append($row);
                             }
                         }
                         paginationHTML = addPagination(totalPages, perPage);
@@ -778,7 +780,7 @@
                     $(divClass).append("<div class='items' id='items-" + i + "' style='display: none;'></div>");
                 }
                 for (var j = 0; j < tempArray.length; j++) {
-                    $(divClass + " #items-" + i).append("<div class='item-row' data-postID='" + tempArray[j].id + "'><div class='row coll-name'><a href='" + tempArray[j].edit + "' target='_blank'>" + tempArray[j].title + "</a></div><div class='coll-info'><p class='action-links'><a href='http://opendocs.ids.ac.uk/opendocs/handle/" + tempArray[j].handle + "' target='_blank'>OpenDocs Link</a></p></div><div class='coll-date'>" + tempArray[j].date + "</div></div>");
+                    $(divClass + " #items-" + i).append("<div class='item-row' data-postID='" + tempArray[j].id + "'><div class='row coll-name'><a href='" + tempArray[j].edit + "' target='_blank'>" + tempArray[j].title + "</a></div><div class='coll-info'><p class='action-links'><a href='" + apiurl + tempArray[j].handle + "' target='_blank'>OpenDocs Link</a></p></div><div class='coll-date'>" + tempArray[j].date + "</div></div>");
                 }
             }
             var paginationHTML = addPagination(totalPages, perPage);
@@ -928,7 +930,7 @@
                     addTab(response1, $thisJobLink.html(), $thisJobLink.data("cronid"), $thisJobLink.data("collectionid"));
                     $(".field-mapping .post_types").val($thisJobLink.data("post-type"));
                     $(".post_sel input[type='text']").val($thisJobLink.text());
-                    $("#collection_name").html('<a target="_opendocs" href="https://opendocs.ids.ac.uk/opendocs/handle/' + $('#sel_coll_handle').val() + '">' + $('#sel_coll_name').val() + '</a>');
+                    $("#collection_name").html('<a target="_opendocs" href="' + apiurl + $('#sel_coll_handle').val() + '">' + $('#sel_coll_name').val() + '</a>');
                     buildMappingTable($thisJobLink);
                     buildOptionsTable($thisJobLink);
                     $(".community-wrap .ajax-loader").hide();
@@ -1213,9 +1215,9 @@
                     var jobtitle = $(".opendocs-form .job-title").val();
                     addTab(response1, jobtitle, 0, $(".opendocs-communities a.selected-collection").data("collid"));
                     $(".field_mapping input[name='job_title']").val(jobtitle);
-                    $(".field-mapping .field-mapping-title").html('Select Post Type to import for <a target="opendocs" href="https://opendocs.ids.ac.uk/opendocs/handle/'+$(".opendocs-communities a.selected-collection").data("comm-handle")+'">' + $(".opendocs-communities a.selected-collection").data("comm-name")) + '</a>';
+                    $(".field-mapping .field-mapping-title").html('Select Post Type to import for <a target="opendocs" href="'+ apiurl + $(".opendocs-communities a.selected-collection").data("comm-handle")+'">' + $(".opendocs-communities a.selected-collection").data("comm-name")) + '</a>';
                     $(".community-wrap .ajax-loader").hide();
-                    //$( 'html, body' ).animate( { scrollTop: $( "#tabs" ).offset().top }, 500 );
+                    $( 'html, body' ).animate( { scrollTop: $( "#tabs" ).offset().top }, 500 );
                     $(".btn_post_mapping").hide();
                     $(".form-wrap[data-page='2']").hide();
                     $(".form-wrap[data-page='3']").show();
