@@ -154,6 +154,7 @@ class OpenDocs_Importer {
 		$this->loader->add_action( 'wp_ajax_getImportedPostIDs', $plugin_admin, 'getImportedPostIDs' );
 		$this->loader->add_action( 'wp_ajax_insertCollectionInDB', $plugin_admin, 'insertCollectionInDB' );
 		$this->loader->add_action( 'wp_ajax_updateImportJob', $plugin_admin, 'updateImportJob' );
+        $this->loader->add_action( 'wp_ajax_updateJobImportList', $plugin_admin, 'updateJobImportList' );
 		$this->loader->add_action( 'wp_ajax_updateImportedItems', $plugin_admin, 'updateImportedItems' );
 		$this->loader->add_action( 'wp_ajax_getTaxonomies', $plugin_admin, 'getTaxonomies' );
 		$this->loader->add_action( 'wp_ajax_getCollectionMetaDate', $plugin_admin, 'getCollectionMetaDate' );

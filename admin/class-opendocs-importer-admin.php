@@ -195,7 +195,7 @@ class OpenDocs_Importer_Admin {
 						'sub_fields'      => $sub_fields,
 						'type'            => $acf_field['type'],
 						'name'            => $acf_field['name'],
-						'sub_fields_name' => $sub_fields_names
+						'sub_fields_names' => $sub_fields_names
 					);
 				else :
 					$acf_fields[] = array(
@@ -395,6 +395,22 @@ class OpenDocs_Importer_Admin {
 		wp_die();
 	}
 
+    /**
+     * AJAX Callback function (update Job with recently imported items)
+     *
+     * @since 1.0.0
+     */
+    public function updateJobImportList() {
+        $data      = $_POST['data'];
+        $data      = str_replace( "\\", "", $data );
+        $cleandata = json_decode( $data );
+        $wp_class  = new Wordpress_IDocs();
+        //error_log('PETER1 '.print_r($cleandata,true));
+        $result = $wp_class->updateJobImportList( $cleandata );
+        echo json_encode( $result );
+        wp_die();
+    }
+
 	/**
 	 * AJAX Callback function (checks for newly imported items)
 	 *
@@ -403,7 +419,7 @@ class OpenDocs_Importer_Admin {
 	public function cronImportPostsCallback( $data, $itemID ) {
 		// error_log('PETER: cronImportPostsCallback: $itemID: '. print_r($itemID,true));
 	    $wp_class = new Wordpress_IDocs();
-		$result   = $wp_class->insertItem( $data, $itemID, false );
+		$result   = $wp_class->insertItem( $data, $itemID );
 	}
 
 	/**
@@ -632,7 +648,7 @@ class OpenDocs_Importer_Admin {
 						'sub_fields'      => $sub_fields,
 						'type'            => $acf_field['type'],
 						'name'            => $acf_field['name'],
-						'sub_fields_name' => $sub_fields_names
+						'sub_fields_names' => $sub_fields_names
 					);
 				else :
 					$acf_fields[] = array(
@@ -827,86 +843,104 @@ class OpenDocs_Importer_Admin {
 	 *
 	 * @since    1.0.0
 	 */
-	public function admin_odocs_cron_callback() {
-		$wp_class    = new Wordpress_IDocs();
-		$xmlAPIQuery = new XML_IDocs_Query();
-		?>
-		<?php $cronImportList = $wp_class->getCRONImports(); ?>
+	public function admin_odocs_cron_callback()
+    {
+        $wp_class = new Wordpress_IDocs();
+        $xmlAPIQuery = new XML_IDocs_Query();
+        ?>
+        <?php $cronImportList = $wp_class->getImportJobs() ?>
         <form class="form-wrap" data-page="1">
-            <h3>Existing Import Jobs</h3>
-            <div class="imports-list items-list edit-list">
-				<?php if ( $cronImportList ) : ?>
-                    <div class="list-header">
-                        <div class="header-title">
-                            <a href="#">Name</a>
-                        </div>
-                        <div class="header-col">
-                            <a href="#">Items</a>
-                        </div>
-                        <div class="header-col header-col-notify">
-                            <a href="#">Notification</a>
-                        </div>
-                        <div class="header-col">
-                            <a href="#">Import To</a>
-                        </div>
-                        <div class="header-col">
-                            <a href="#">Type</a>
-                        </div>
-                        <div class="header-col header-frequency">
-                            <a href="#">Frequency</a>
-                        </div>
-                        <div class="header-col select-all">
-                            Delete
-                        </div>
+        <h3>Existing Import Jobs</h3>
+        <div class="imports-list items-list edit-list">
+        <?php if ($cronImportList) : ?>
+        <div class="list-header">
+            <div class="header-title">
+                <a href="#">Name</a>
+            </div>
+            <div class="header-col">
+                <a href="#">Items</a>
+            </div>
+            <div class="header-col header-col-notify">
+                <a href="#">Notification</a>
+            </div>
+            <div class="header-col">
+                <a href="#">Import To</a>
+            </div>
+            <div class="header-col">
+                <a href="#">Type</a>
+            </div>
+            <div class="header-col header-frequency">
+                <a href="#">Frequency</a>
+            </div>
+            <div class="header-col select-all">
+                Delete
+            </div>
 
-                    </div>
+        </div>
 
 
-
-                    <?php foreach ( $cronImportList as $import ) :
-						$importOptions = json_decode( $import->options );
-						$frequency = '';
-						$wpCoreSelect = '<select style="display: none;">';
-						$jobName = empty( $import->jobName ) ? 'N/A' : $import->jobName;
-						$notifyEmail = empty( $importOptions->notifyEmail ) ? 'N/A' : $importOptions->notifyEmail;
-						$postType = empty( $importOptions->postTypeName ) ? 'N/A' : $importOptions->postTypeName;
-						$importedItems = $wp_class->viewImportedItemsInCollection( $import->id );
-						$acfFields = $this->getACFieldsByCPT( $importOptions->postType );
-						$taxonomies = $this->getTaxonomyByCPT( $importOptions->postType );
-						//$itemIDsInCollection = $xmlAPIQuery->getItemIDsInCollectionShort( $import->collectionID );
-						$itemsInCollection = $xmlAPIQuery->getItemCountInCollection( $import->collectionID );
-						$defaultFields = array( 'Title', 'Date', 'Content', 'IDS Identifier' );
-						foreach ( $defaultFields as $defaultField ) :
-							$wpCoreSelect .= '<option value="' . $defaultField . '">' . $defaultField . '</option>';
-						endforeach;
-						foreach ( $acfFields as $acfField ) :
-							if ( $acfField['type'] == 'repeater' ) :
-								$wpCoreSelect .= '<option value="' . $acfField['id'] . '" data-sub-fields="' . implode( ',', $acfField['sub_fields'] ) . '" data-field-name="' . $acfField['name'] . '" data-sub-fieldnames="' . implode( ',', $acfField['sub_fields_name'] ) . '" data-field-type="repeater">' . $acfField['label'] . ' (' . $acfField['type'] . ')</option>';
-							else :
-								$wpCoreSelect .= '<option value="' . $acfField['id'] . '" data-field-name="' . $acfField['name'] . '">' . $acfField['label'] . ' (' . $acfField['type'] . ')</option>';
-							endif;
-						endforeach;
-						foreach ( $taxonomies as $CTPtaxonomy ) :
-							$wpCoreSelect .= '<option value="' . $CTPtaxonomy['tax_id'] . '" data-field-type="taxonomy">' . $CTPtaxonomy['label'] . '</option>';
-						endforeach;
-						$wpCoreSelect .= '</select>';
-						$weekDays     = array(
-							'Sunday',
-							'Monday',
-							'Tuesday',
-							'Wednesday',
-							'Thursday',
-							'Friday',
-							'Saturday',
-						);
-						if ( $importOptions->frequency == 'immediately' ) :
-							$frequency = 'N/A';
-                        elseif ( $importOptions->frequency == 'daily' ) :
-							$frequency = 'Daily at ' . $importOptions->when[0];
-						else :
-							$frequency = 'Every ' . $weekDays[ $importOptions->when[1] ] . ' at ' . $importOptions->when[0];
-						endif; ?>
-                        <div class="item-row">
+        <?php foreach ($cronImportList as $import) :
+            $importOptions = json_decode($import->options);
+            $frequency = '';
+            $wpCoreSelect = '<select style="display: none;">';
+            $jobName = empty($import->jobName) ? 'N/A' : $import->jobName;
+            $notifyEmail = empty($importOptions->notifyEmail) ? 'N/A' : $importOptions->notifyEmail;
+            $postType = empty($importOptions->postTypeName) ? 'N/A' : $importOptions->postTypeName;
+            $importedItems = $wp_class->viewImportedItemsInCollection($import->id);
+            $acfFields = $this->getACFieldsByCPT($importOptions->postType);
+            $taxonomies = $this->getTaxonomyByCPT($importOptions->postType);
+            //$itemIDsInCollection = $xmlAPIQuery->getItemIDsInCollectionShort( $import->collectionID );
+            $itemsInCollection = $xmlAPIQuery->getItemCountInCollection($import->collectionID);
+            $defaultFields = array('Title', 'Date', 'Content', 'IDS Identifier');
+            foreach ($defaultFields as $defaultField) :
+                $wpCoreSelect .= '<option value="' . $defaultField . '">' . $defaultField . '</option>';
+            endforeach;
+            foreach ($acfFields as $acfField) :
+                if ($acfField['type'] == 'repeater') :
+                    $wpCoreSelect .= '<option value="' . $acfField['id'] . '" data-sub-fields="' . implode(',', $acfField['sub_fields']) . '" data-field-name="' . $acfField['name'] . '" data-sub-fieldnames="' . implode(',', $acfField['sub_fields_names']) . '" data-field-type="repeater">' . $acfField['label'] . ' (' . $acfField['type'] . ')</option>';
+                else :
+                    $wpCoreSelect .= '<option value="' . $acfField['id'] . '" data-field-name="' . $acfField['name'] . '">' . $acfField['label'] . ' (' . $acfField['type'] . ')</option>';
+                endif;
+            endforeach;
+            foreach ($taxonomies as $CTPtaxonomy) :
+                $wpCoreSelect .= '<option value="' . $CTPtaxonomy['tax_id'] . '" data-field-type="taxonomy">' . $CTPtaxonomy['label'] . '</option>';
+            endforeach;
+            $wpCoreSelect .= '</select>';
+            $weekDays = array(
+                'Sunday',
+                'Monday',
+                'Tuesday',
+                'Wednesday',
+                'Thursday',
+                'Friday',
+                'Saturday',
+            );
+            if ($importOptions->frequency == 'immediately') :
+                $frequency = 'N/A';
+            elseif ($importOptions->frequency == 'daily') :
+                $frequency = 'Daily at ' . $importOptions->when[0];
+            else :
+                $frequency = 'Every ' . $weekDays[$importOptions->when[1]] . ' at ' . $importOptions->when[0];
+            endif; ?>
+            <?php
+                $pendingCount = 0;
+                $ignoredCount = 0;
+            if ($itemIDs = get_option('odocs_collection_' . $import->collectionID . '_items')) :
+                if (count($itemIDs) > 0) {
+                    $arrayItemIDs = explode(',', $itemIDs);
+                } else {
+                    $arrayItemIDs = [];
+                }
+                $notIgnored = array_diff($arrayItemIDs, $wp_class->getIgnoredItemIds());
+                $existing = $wp_class->getExistingItemIds();
+                $ignoredCount = count($arrayItemIDs) - count($notIgnored) ;
+                $pending = array_diff($arrayItemIDs, $existing);
+                $pending = array_diff($pending, $wp_class->getIgnoredItemIds());
+                $pendingCount = count($pending);
+                $importedItemsLink = '/wp-admin/edit.php?post_type=' . $importOptions->postType . '&odocs_item_id='. urlencode($import->lastImportedItems) ;
+            endif;
+            ?>
+            <div class="item-row">
                             <div class="row coll-name"><a href="#" class="edit-job"
                                                           data-cronid="<?php echo $import->id; ?>"
                                                           data-collectionid="<?php echo $import->collectionID; ?>"
@@ -917,8 +951,10 @@ class OpenDocs_Importer_Admin {
                                                           data-post-type="<?php echo $importOptions->postType; ?>"><?php echo $jobName; ?></a><br/><?php echo trim(array_values(array_slice(explode('->', $import->collectionName), -1))[0]); ?>
 
                             </div>
-                            <div class="row coll-info"><span href="#" class="imported-items"
-                                                          data-cronid="<?php echo $import->id; ?>"><?php echo $itemsInCollection; ?> items</span></div>
+                            <div class="row coll-info"><span href="#" class="imported-items" data-cronid="<?php echo $import->id; ?>">
+                                    <?php echo $itemsInCollection; ?> items, <?php echo $pendingCount;?> pending, <?php echo $ignoredCount;?> ignored</span>
+                                    <?php echo '<br /><a href="' . $importedItemsLink . '" target="_blank">Last import</a>';?>
+                            </div>
                             <div class="row coll-info coll-notify"><?php echo $notifyEmail; ?></div>
                             <div class="row coll-info import-post"
                                  data-status="<?php echo $importOptions->postStatus; ?>"><?php

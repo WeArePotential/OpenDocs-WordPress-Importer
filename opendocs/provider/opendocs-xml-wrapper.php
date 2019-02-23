@@ -37,11 +37,11 @@ class XML_IDocs_Query implements IDocs_Query_Interface {
  	* item IDs List.
  	*
  	* @since 1.0.0
- 	* @var array of item IDs $itemIDs Stores item IDs
+ 	* @var array of item ids
  	*/
 	private $itemIDs = []; // Item IDs
 	/**
- 	* post type info.
+ 	* Post type info.
  	*
  	* @since 1.0.0
  	* @var string selected post type info
@@ -237,7 +237,7 @@ class XML_IDocs_Query implements IDocs_Query_Interface {
 		$itemDOMs = array();
 	    $wp_class = new Wordpress_IDocs();
 		$existingItems = $wp_class->getExistingItems();
-    	foreach( $collectionIDs as $collectionID ) : 
+		foreach( $collectionIDs as $collectionID ) :
     		$itemsInCollectionCount = $collectionID[0];
 			$totalPages = ceil( $itemsInCollectionCount / $pager );
     		for($i = 0;$i < $totalPages;$i++) {
@@ -250,53 +250,33 @@ class XML_IDocs_Query implements IDocs_Query_Interface {
 			endif;
 			for($i = 0;$i < count( $itemDOMs );$i++) {
 				$itemNodes = $itemDOMs[ $i ]->getElementsByTagName( 'item' );
+				$itemIDs = [];
 				foreach( $itemNodes as $item ) : 
-					$id = $item->getElementsByTagName( 'id' );
-					$id = $id->item(0)->nodeValue;
-					$name = $item->getElementsByTagName( 'name' );
-	                $name = $name->item(0)->nodeValue;
-					$handle = $item->getElementsByTagName( 'handle' );
-					$handle = $handle->item(0)->nodeValue;
-					$date = $item->getElementsByTagName('lastModified');
-	                $date = $date->item(0)->nodeValue;
-	                $date = date_format(date_create($date), 'd/m/y');
-	                if (array_key_exists($id, $existingItems)) {
-	                    $existing = true;
-	                    $post_id = $existingItems[$id];
-			        } else {
-	                    $existing = false;
-				        $post_id = 0;
-			        }
-					$itemObj = array( 'id' => $id, 'name' => $name, 'date'=> $date, 'existing'=> $existing, 'post_id'=>$post_id, 'post_link'=>get_permalink($post_id), 'handle'=>$handle);
-	                $items[] = $itemObj;
+                    $id = $item->getElementsByTagName( 'id' );
+                    $id = $id->item(0)->nodeValue;
+                    $name = $item->getElementsByTagName( 'name' );
+                    $name = $name->item(0)->nodeValue;
+                    $handle = $item->getElementsByTagName( 'handle' );
+                    $handle = $handle->item(0)->nodeValue;
+                    $date = $item->getElementsByTagName('lastModified');
+                    $date = $date->item(0)->nodeValue;
+                    $date = date_format(date_create($date), 'd/m/y');
+                    if (array_key_exists($id, $existingItems)) {
+                        $existing = true;
+                        $post_id = $existingItems[$id];
+                    } else {
+                        $existing = false;
+                        $post_id = 0;
+                    }
+                    $itemObj = array( 'id' => $id, 'name' => $name, 'date'=> $date, 'existing'=> $existing, 'post_id'=>$post_id, 'post_link'=>get_permalink($post_id), 'handle'=>$handle);
+                    $items[] = $itemObj;
+                    $itemIDs[] = $id;
 				endforeach;
+                update_option('odocs_collection_'. $collectionID[1] . '_items', implode(',', $itemIDs));
 			} 
 		endforeach;
 		return $items;
     }
-
-	/**
-	 * Get collection to get Item IDs
-	 *
-	 * Retrieves array of items IDs in a collection by collection ID
-	 *
-	 * @since 1.0.0
-	 *
-	 * @param int $communityID Community ID to retrieve collection
-	 *
-	 * @return array List of items IDs
-	 */
-	public function getItemIDsInCollectionShort($collectionID) {
-		$itemIDs = array();
-		$request = $this->APIUrl . '/collections/' . $collectionID . '/?expand=items&limit=1000';
-		$collDOM = $this->getXMLDomDoc($request);
-		$itemNodes = $collDOM->getElementsByTagName('items');
-		foreach( $itemNodes as $node ) :
-			$item = $node->getElementsByTagName( 'id' );
-			$itemIDs[]= $item->item(0)->nodeValue;
-		endforeach;
-		return $itemIDs;
-	}
 
 
 	/**
@@ -379,9 +359,9 @@ class XML_IDocs_Query implements IDocs_Query_Interface {
 		$insertedPostIDs = $this->getXMLDomDocMultiValues( $this->itemIDs, $requests );
 		return $insertedPostIDs;
     }
-	
+
 	/**
- 	* Gets items Info 
+ 	* Gets items Info
  	*
  	* Returns array of items info
  	*
@@ -394,13 +374,13 @@ class XML_IDocs_Query implements IDocs_Query_Interface {
 	public function getItemsInfo($itemIDsList) {
 		$requests = [];
 		$results = [];
-		foreach($itemIDsList as $itemID) : 
+		foreach($itemIDsList as $itemID) :
 			$requests[] = $this->APIUrl . '/items/' . $itemID;
 		endforeach;
 		$itemsDOMList = $this->getXMLDomDocMulti($requests);
 		for($i = 0;$i < count( $itemsDOMList );$i++) {
 			$itemNodes = $itemsDOMList[ $i ]->getElementsByTagName( 'item' );
-			foreach( $itemNodes as $item ) : 
+			foreach( $itemNodes as $item ) :
 	        	$name = $item->getElementsByTagName( 'name' );
 	        	$name = $name->item(0)->nodeValue;
 				$id = $item->getElementsByTagName( 'id' );
@@ -412,7 +392,7 @@ class XML_IDocs_Query implements IDocs_Query_Interface {
 		}
 		return $results;
 	}
-	
+
 	/**
  	* Retrieve item data
  	*
@@ -429,46 +409,46 @@ class XML_IDocs_Query implements IDocs_Query_Interface {
 	private function retrieveValues($itemID, $xmlContent) {
 
 		$fieldValues = [];
-		
+
 		// Load XML Content into DomDocument and initialize DOM XPath
 		$itemDom = new DOMDocument();
         $itemDom->loadXML($xmlContent);
     	$itemXPath = new DOMXPath($itemDom);
-		
+
 		$postTypeInfo = $this->postTypeInfo;
 		$fieldMapping = $this->fieldMapping;
 		$itemHandles = $this->itemHandles;
 		$importedCount = count($this->insertedItemIDs);
 		$itemCount = $this->itemCount;
 		$itemIDs = $this->itemIDs;
-		
+
 		$wp_class = new Wordpress_IDocs();
 		//error_log('PETER: retrieveValues: '. print_r($fieldMapping,true));
 
-		//Create field mapping array and retrieve meta data. 
-    	foreach( $fieldMapping as $mapping ) : 
-    		if( $mapping[1] == 'full_text_url' || $mapping[1] == 'full_text_type' || $mapping[1] == 'full_text_size' ) : 
-				if( ! array_key_exists( 'field_type', $mapping ) ) : 
+		//Create field mapping array and retrieve meta data.
+    	foreach( $fieldMapping as $mapping ) :
+    		if( $mapping[1] == 'full_text_url' || $mapping[1] == 'full_text_type' || $mapping[1] == 'full_text_size' ) :
+				if( ! array_key_exists( 'field_type', $mapping ) ) :
     				$fieldValues[] = array( 'field_id' => $mapping[0], 'field_name' => $mapping[1], 'field_value' => '', 'acf_name' => $mapping[3] );
-				else : 
+				else :
 					$fieldValues[] = array( 'field_id' => $mapping[0], 'field_name' => $mapping[1], 'field_value' => '', 'sub_fields' => $mapping['sub_fields'], 'field_type' => $mapping['field_type'], 'acf_name' => $mapping[3], 'sub_field_names' => $mapping[4] );
 				endif;
-    		else : 
+    		else :
 			$mappedNodes = $itemXPath->query("//metadataentry[key[contains(., '" . $mapping[1] . "')]]/value");
-	    	foreach( $mappedNodes as $mappedNode ) : 
+	    	foreach( $mappedNodes as $mappedNode ) :
     			$fieldValue = $mappedNode->nodeValue;
-		
+
 				$parentNode = $mappedNode->parentNode;
 				$lang = 'N/A';
 				$langEntries = $itemXPath->query("language", $parentNode);
-				foreach($langEntries as $langEntry) : 
-					if( empty($langEntry->nodeValue) ) : 
+				foreach($langEntries as $langEntry) :
+					if( empty($langEntry->nodeValue) ) :
 						$lang = 'N/A';
-					else : 
+					else :
 						$lang = $langEntry->nodeValue;
-					endif;  
+					endif;
 				endforeach;
-					
+
 				if( ! array_key_exists( 'field_type', $mapping ) ) :
 					$fieldValues[] = array( 'field_id' => $mapping[0], 'field_name' => $mapping[1], 'field_value' => $fieldValue, 'acf_name' => $mapping[3], 'lang' => $lang );
                 else :
@@ -481,8 +461,8 @@ class XML_IDocs_Query implements IDocs_Query_Interface {
 	    		endforeach;
     		endif;
     	endforeach;
-		
-		// Create Wordpress Post with retrieved meta data. 
+
+		// Create Wordpress Post with retrieved meta data.
 		$insertedPostID = $wp_class->insertPost($itemID, $itemHandles[$itemID], $fieldValues, $postTypeInfo, $itemCount, $this->insertedItemIDs, $this->itemIDs, $this->cronID );
 		$this->insertedItemIDs[$itemID] = $insertedPostID;
 		return $insertedPostID;
@@ -574,11 +554,11 @@ class XML_IDocs_Query implements IDocs_Query_Interface {
 		$itemFiles = $this->getXMLDomDocMultiGetURL($importedItems, $fieldValues, $itemIDs);
 		return $itemFiles;
     }
-		
+
 	/**
  	* Get item Handles
  	*
- 	* Get list of item handles 
+ 	* Get list of item handles
  	*
  	* @since 1.0.0
  	*
@@ -589,7 +569,7 @@ class XML_IDocs_Query implements IDocs_Query_Interface {
     public function getItemHandles( $itemIDs ) {
 		$itemHandles = $this->itemHandles;
 		$requests = [];
-		foreach($itemIDs as $itemID) : 
+		foreach($itemIDs as $itemID) :
 			$requests[] = $this->APIUrl . '/items/' . $itemID;
 		endforeach;
 
@@ -603,7 +583,7 @@ class XML_IDocs_Query implements IDocs_Query_Interface {
 
 		 foreach($chunked_results as $itemHandlesDom) {
 			 foreach ( $itemHandlesDom as $itemHandleDom ) :
-				 if ( $itemHandleDom !== - 1 ) :
+				 if ( is_object($itemHandleDom)) :
 					 $itemHandleNodes = $itemHandleDom->getElementsByTagName( 'item' );
 					 foreach ( $itemHandleNodes as $item ) :
 						 $itemHandle             = $item->getElementsByTagName( 'handle' );
@@ -618,7 +598,7 @@ class XML_IDocs_Query implements IDocs_Query_Interface {
 		$this->itemHandles = array_merge($itemHandles, $this->itemHandles);
 		return $itemHandles;
     }
-	
+
 	/**
  	* Get collection metadata
  	*
@@ -833,12 +813,7 @@ class XML_IDocs_Query implements IDocs_Query_Interface {
 				$itemObj = simplexml_import_dom( $itemDOM );
 				$itemID = (string) $itemObj->id;
 				$itemHandle = (string) $itemObj->handle;
-				/* No longer need itemHanldes as we're getting it from the item XML
-				 * if ( ! array_key_exists( $itemID, $itemHandles ) ) {
-				 * 	$itemHandles[ $itemID ] = $itemHandle;
-				 * }
-				 */
-				//error_log( 'PETER: getXMLDomDocMultiGetURL: $item: ' . print_r( $itemID, true ) );
+				// error_log( 'PETER: getXMLDomDocMultiGetURL: $item: ' . print_r( $itemID, true ) );
 
 				$sequenceID   = 0;
 				$fileType     = '';

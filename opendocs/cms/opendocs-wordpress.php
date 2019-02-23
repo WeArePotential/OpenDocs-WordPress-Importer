@@ -119,19 +119,18 @@ class Wordpress_IDocs implements IDocs_CRUD {
 	}
 
 	/**
-	 * Get All Cron Jobs
+	 * Get all Jobs
 	 *
-	 * Returns all CRON jobs from database.
+	 * Returns all jobs from database.
 	 *
 	 * @since 1.0.0
 	 *
 	 * @return array List of CRON jobs
 	 */
-	public function getCRONImports() {
+	public function getImportJobs() {
 		global $wpdb;
 		$tableName   = $wpdb->prefix . 'odocs';
 		$importsList = $wpdb->get_results( "SELECT * FROM $tableName" );
-
 		return $importsList;
 	}
 
@@ -162,6 +161,7 @@ class Wordpress_IDocs implements IDocs_CRUD {
 			$itemList[] = $item->id;
 		endforeach;
 
+		//error_log('PETER: insertItem: $fieldMappings: '. print_r($fieldMappings,true));
 		// See if we have an array or an object
 		if ( is_object( $fieldMappings[0] ) ) :
 			foreach ( $fieldMappings as $fieldMapping ) :
@@ -174,7 +174,7 @@ class Wordpress_IDocs implements IDocs_CRUD {
 							'sub_fields' => $fieldMapping->sub_fields,
 							'field_type' => $fieldMapping->type,
 							$fieldMapping->acf_name,
-							$fieldMapping->sub_field_names
+                            ( property_exists($fieldMapping,sub_field_names) ? $fieldMapping->sub_field_names : Null )
 						);
 					else :
 						$mappingArray[] = array(
@@ -202,18 +202,15 @@ class Wordpress_IDocs implements IDocs_CRUD {
 		$itemHandleList = $itemObj->getItemHandles( $itemList );
 
 		foreach ( $mappingArray as $fieldMapping ) :
-			// We need to make sure we have both an associative array (with names) as well as positions.
+            // We need to make sure we have both an associative array (with names) as well as positions.
 			// TODO: Ensure that the mapping is always passed in the same way. This is a crazy way to do it!
 			if ( ! array_key_exists( 'field_name', $fieldMapping ) ) {
 				$fieldMapping['field_id']     = $fieldMapping[0];
 				$fieldMapping['field_name']   = $fieldMapping[1];
 				$fieldMapping['collectionID'] = $fieldMapping[2];
-				if ( isset( $fieldMapping[3] ) ) {
-					$fieldMapping['acf_name'] = $fieldMapping[3];
-				}
-				if ( isset( $fieldMapping[4] ) ) {
-					$fieldMapping['sub_field_names'] = $fieldMapping[4];
-				}
+				$fieldMapping['acf_name'] = ( isset( $fieldMapping[3] ) ? $fieldMapping[3] : '');
+                $fieldMapping['sub_field_names'] = ( isset( $fieldMapping[4] ) ? $fieldMapping[4] : '');
+
 			} else {
 				$fieldMapping[0] = $fieldMapping['field_id'];
 				$fieldMapping[1] = $fieldMapping['field_name'];
@@ -254,9 +251,6 @@ class Wordpress_IDocs implements IDocs_CRUD {
 			endif;
 		endforeach;
 
-		// This should already have been done, and we don't need to save the individual items any more.
-		// $cronID = $this->insertCollectionInDB( $postTypeInfo, $toInsertMapping, $hasFileURL );
-
 		$itemInfo        = array(
 			'itemsList'     => $itemList,
 			'itemHandles'   => $itemHandleList,
@@ -268,7 +262,6 @@ class Wordpress_IDocs implements IDocs_CRUD {
 			'mappingArray' => $toInsertMapping
 		);
 		$insertedPostIDs = $itemObj->getItems( (object) $itemInfo, (object) $mappingInfo, $cronID );
-
 		return $insertedPostIDs;
 
 	}
@@ -396,11 +389,6 @@ class Wordpress_IDocs implements IDocs_CRUD {
 			add_post_meta( $insertedPostID, 'odocs_item_id', $itemID );
 			add_post_meta( $insertedPostID, 'odocs_has_file', $hasFileURL );
 
-			if ( $cronID == 0 ) {
-				//error_log( 'PETER: insertPost: Don\'t need to insertCollectionInDB: ' . $cronID );
-				//$cronID = $this->insertCollectionInDB($postTypeInfo, $importedItems, $hasFileURL);
-			}
-
 			$this->insertItemInfoInDB( $itemID, $cronID );
 			$postMetaUpdate = $this->updatePostFields( $insertedPostID, $itemHandle, $mergedArray, $hasFileURL );
 
@@ -494,7 +482,6 @@ class Wordpress_IDocs implements IDocs_CRUD {
 								$fieldValue = array();
 							endif;
 						endif;
-
 
 						foreach ( $fieldValue as $repeaterValue ) :
 							$repeaterValues[] = array( $sub_fields => $repeaterValue );
@@ -806,6 +793,49 @@ class Wordpress_IDocs implements IDocs_CRUD {
 		return $cronID;
 	}
 
+
+    /**
+     * Update Cron job
+     *
+     * Save changes to existing CRON job
+     *
+     * @since 1.0.0
+     *
+     * @param class $items class containing job info
+     *
+     * @return int CRON job ID
+     */
+    public function updateJobImportList( $items ) {
+        global $wpdb;
+        $tableName         = $wpdb->prefix . 'odocs';
+        $postType          = $items->postType;
+        $itemIDs           = $items->itemIDs;
+        $jobID             = $items->jobID;
+        $isUpdated         = False;
+
+        error_log( 'PETER: Update job, job id is ' . $jobID . ': ' . print_r( $items, true ) );
+
+        $isJob = $wpdb->get_row( "SELECT id FROM $tableName WHERE id = $jobID" );
+        if ( $isJob ) :
+            $isUpdated = $wpdb->update( $tableName,
+                array(
+                    'lastImportedItems'       => $itemIDs,
+                    'lastImport'              => date('Y-m-d H:i:s')
+                ),
+                array(
+                    'id' => $isJob->id
+                ),
+                array(
+                    '%s',
+                    '%s'
+                ),
+                array(
+                    '%d'
+                )
+            );
+        endif;
+        return $isUpdated;
+    }
 
 	public function deleteItemPost( $postID ) {
 		$itemID = get_post_meta( $postID, 'odocs_item_id', true );

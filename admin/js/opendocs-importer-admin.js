@@ -273,9 +273,7 @@
 
             $("#progress-wrap").show();
 
-            // Set all the ignoreItemIDs so that when we call the update, it doesn't include them
-            //console.log('PETER: ignoreItemIDs:', ignoreItemIDs);
-
+            var jobID = $("#job_id").val();
             var jobName = $(".job-title").val();
             var notifyEmail = $(".field-mapping").find(".notify-email input").val();
             var schedule_hour_day = [$(".field-mapping").find(".schedule-at #schedule-hour").val(), $(".field-mapping").find(".schedule-at #schedule-day").val()];
@@ -382,6 +380,7 @@
                     data: datatoSend,
                     dataType: 'json',
                     postType: postType,
+                    jobID: jobID,
                     timeout: 0,
                     beforeSend: function () {
                         //console.log('PETER: Prepare to store to imported items');
@@ -390,7 +389,7 @@
                     },
                     success: function (response) {
                         callbackTimer = setTimeout(function () {
-                            checkForImportedPosts(toImportCount, newItemCount, postType);
+                            checkForImportedPosts(toImportCount, newItemCount, postType, jobID);
                         }, 2000);
                         postOnlyImportTimer = setTimeout(function () {
                             checkIfPostOnlyImportDone();
@@ -399,7 +398,7 @@
                     error: function (jqXHR, exception) {
                         if (jqXHR.status !== 500) {
                             callbackTimer = setTimeout(function () {
-                                checkForImportedPosts(toImportCount, newItemCount, postType);
+                                checkForImportedPosts(toImportCount, newItemCount, postType, jobID);
                             }, 2000);
                             postOnlyImportTimer = setTimeout(function () {
                                 checkIfPostOnlyImportDone();
@@ -420,28 +419,25 @@
                             $(this).dialog("close");
                             window.location.reload();
                         }
-                    }, {
-                        text: "Cancel", click: function () {
-                            $(this).dialog("close");
-                        }
                     }]
                 });
             }
 
             $(".form-wrap").hide();
-            //$(".form-wrap.existing-items-list").show();
             $(".community-wrap .btn_wrap").hide();
             allItemsImported.push({
-                'postType': $(".field-mapping .post_types").val(),
+                'postType': postType,
                 'itemIDs': toImportIDs,
-                'existingItems': $("#existingItemIDs").val().split(',')
+                'existingItems': $("#existingItemIDs").val().split(','),
+                'jobID': jobID
             });
-            console.log('PETER: allItemsImported: ', allItemsImported);
+            // console.log('PETER: allItemsImported: ', allItemsImported);
             if (allItemsImported) {
+                // Update the job with the recently updated items
+                updateJobImportList(JSON.stringify(allItemsImported[0]));
                 //showImportList(JSON.stringify(allItemsImported));
                 console.log('All items imported');
             }
-
         });
 
         function addIgnoredItems(newIgnoredItems) {
@@ -473,7 +469,7 @@
             });
         }
 
-        function checkForImportedPosts(totalRecords, newItemCount, postType) {
+        function checkForImportedPosts(totalRecords, newItemCount, postType, jobID) {
             var itemIDs = $("#toImportItemIDs").val();
             var skippedMSG = '';
             $.ajax({
@@ -481,6 +477,7 @@
                 type: "POST",
                 itemIDs: itemIDs,
                 postType: postType,
+                jobID: jobID,
                 data: {
                     'action': 'checkIfImportComplete',
                     'data': itemIDs,
@@ -488,15 +485,18 @@
                 timeout: 0,
                 success: function (response) {
                     var progress = parseInt(response) / newItemCount;
-                    console.log('Type:' + postType);
                     progress = Math.round(progress * 100);
                     successfullImports = response;
                     $(".progress-bar .progress").css("width", progress + "%").html(progress + "%");
-                    console.log("PETER: Item Count: " + newItemCount + ", Imported: " + response + " into type " + postType);
+                    console.log("PETER: Item Count: " + newItemCount + ", Imported: " + response + " into type " + postType + " for job " + jobID);
 
                     $('.imported-progress').html('Imported ' + response + ' items of ' + newItemCount + skippedMSG);
                     if (response == newItemCount) {
                         clearTimeout(callbackTimer);
+                        updateJobImportList(JSON.stringify({'postType': postType,
+                            'itemIDs': itemIDs,
+                            'existingItems': '',
+                            'jobID': jobID}));
                         //showImportList(itemIDs);
                         $('<div id="finish-job" title="Info"><p>Import job complete<br />' + newItemCount + ' items imported.</p><p><a target="_blank" href="/wp-admin/edit.php?post_type=' + postType + '&odocs_item_id='+ encodeURI(itemIDs) +'">View imported posts</a></p></div>').dialog({
                             modal: true,
@@ -509,13 +509,13 @@
                         });
                     } else {
                         callbackTimer = setTimeout(function () {
-                            checkForImportedPosts(totalRecords, newItemCount, postType);
+                            checkForImportedPosts(totalRecords, newItemCount, postType, jobID);
                         }, 5000);
                     }
                 },
                 error: function (jqXHR, exception) {
                     callbackTimer = setTimeout(function () {
-                        checkForImportedPosts(totalRecords, newItemCount, postType);
+                        checkForImportedPosts(totalRecords, newItemCount, postType, jobID);
                     }, 5000);
                 }
             });
@@ -523,6 +523,9 @@
 
         function checkIfPostOnlyImportDone() {
             var itemIDs = $("#toImportItemIDs").val();
+            var processed;
+            //console.log('checkIfPostOnlyImportDone: ItemIDs', itemIDs);
+            //console.log('checkIfPostOnlyImportDone: ItemIDs length', itemIDs.split(',').length);
             $.ajax({
                 countItemIds: itemIDs.split(',').length,
                 url: ajaxurl,
@@ -531,17 +534,24 @@
                     'action': 'checkIfImportComplete',
                     'data': itemIDs,
                 },
-                timeout: 0,
+                timeout: 600000, // Wait 10 mins
+                processed: 0,
                 success: function (response) {
                     //console.log('PETER: checkifdone: Got ' + response + ' of '+ this.countItemIds);
                     if (response == this.countItemIds) {
-                        $('.imported-progress-info').html('Creation of posts done, now getting additional fields');
+                        // $('.imported-progress-info').html('Creation of posts done, now getting additional fields');
                         clearTimeout(postOnlyImportTimer);
                     } else {
                         $('.imported-progress-info').html('Creating posts');
+                        processed = processed + 1;
                         postOnlyImportTimer = setTimeout(function () {
                             checkIfPostOnlyImportDone();
                         }, 3000);
+                    }
+                },
+                error: function (jqXHR, textStatus, errorThrown) {
+                    if (textStatus == "timeout") {
+                        $('.imported-progress-info').html('Creation of posts timed out after ' + processed + 'items imported.');
                     }
                 }
             });
@@ -594,6 +604,23 @@
             return isImported;
         }
 
+        function updateJobImportList(items) {
+            $.ajax({
+                url: ajaxurl,
+                type: "POST",
+                dataType: 'json',
+                data: {
+                    'action': 'updateJobImportList',
+                    'data': items,
+                },
+                timeout: 0,
+                success: function (response) {
+                    if (response) {
+                        console.log('updateJobImportList: response', response);
+                    }
+                }
+            });
+        }
         function groupArrayByCollectionID(itemIDs, postTypes) {
             var groupedArray = [];
             for (var i = 0; i < postTypes.length; i++) {
@@ -1289,7 +1316,7 @@
                         }
                         $.each(response1, function (index, element) {
                             if (element.type == 'repeater') {
-                                cfields.push(element.id + "{{}}" + element.label + "{{}}" + element.sub_fields + "{{}}" + element.type + "{{}}" + element.name + "{{}}" + element.sub_fields_name);
+                                cfields.push(element.id + "{{}}" + element.label + "{{}}" + element.sub_fields + "{{}}" + element.type + "{{}}" + element.name + "{{}}" + element.sub_fields_names);
                             } else {
                                 cfields.push(element.id + "{{}}" + element.label + "{{}}" + element.type + "{{}}" + element.name);
                             }
