@@ -174,7 +174,7 @@ class Wordpress_IDocs implements IDocs_CRUD {
 							'sub_fields' => $fieldMapping->sub_fields,
 							'field_type' => $fieldMapping->type,
 							$fieldMapping->acf_name,
-                            ( property_exists($fieldMapping,sub_field_names) ? $fieldMapping->sub_field_names : Null )
+                            ( property_exists($fieldMapping,'sub_field_names') ? $fieldMapping->sub_field_names : Null )
 						);
 					else :
 						$mappingArray[] = array(
@@ -378,6 +378,7 @@ class Wordpress_IDocs implements IDocs_CRUD {
 				'post_date'    => date( 'Y-m-d  H:i:s', $date ),
 				'post_status'  => $postTypeInfo->postStatus
 			);
+			// error_log('PETER: insertPost: $postArgs: '.print_r($postArgs ,true));
 			$insertedPostID = wp_insert_post( $postArgs );
 
 			$importedItems[ $itemID ] = $insertedPostID;
@@ -393,9 +394,9 @@ class Wordpress_IDocs implements IDocs_CRUD {
 			$postMetaUpdate = $this->updatePostFields( $insertedPostID, $itemHandle, $mergedArray, $hasFileURL );
 
 			if ( $itemCount == $importedCount ) :
-				$itemObj = new XML_IDocs_Query();
-				$itemObj->setTimeout( 300 );
-				$downloadFile = $itemObj->getItemFiles( $importedItems, $fieldValues, $itemIDs );
+                $itemObj = new XML_IDocs_Query();
+                $itemObj->setTimeout( 300 );
+                $downloadFile = $itemObj->getItemFiles( $importedItems, $fieldValues, $itemIDs );
 			endif;
 
 			return $insertedPostID;
@@ -813,8 +814,7 @@ class Wordpress_IDocs implements IDocs_CRUD {
         $jobID             = $items->jobID;
         $isUpdated         = False;
 
-        error_log( 'PETER: Update job, job id is ' . $jobID . ': ' . print_r( $items, true ) );
-
+        // error_log( 'PETER: updateJobImportList: Update job id  ' . $jobID . ': ' . print_r( $items, true ) );
         $isJob = $wpdb->get_row( "SELECT id FROM $tableName WHERE id = $jobID" );
         if ( $isJob ) :
             $isUpdated = $wpdb->update( $tableName,

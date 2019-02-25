@@ -170,7 +170,6 @@ class OpenDocs_Importer {
 		$this->loader->add_action( 'wp_ajax_checkIfImportPostOnlyComplete', $plugin_admin, 'checkIfImportPostOnlyComplete' );
 		$this->loader->add_action( 'wp_ajax_checkForErrorImports', $plugin_admin, 'checkForErrorImports' );
 		$this->loader->add_action( 'wp_ajax_checkIfImportComplete', $plugin_admin, 'checkIfImportComplete' );
-		$this->loader->add_action( 'wp_ajax_showImportList', $plugin_admin, 'showImportList' );
 		$this->loader->add_action( 'wp_ajax_saveFieldLabels', $plugin_admin, 'saveFieldLabels' );
 		$this->loader->add_action( 'wp_ajax_deleteFieldLabel', $plugin_admin, 'deleteFieldLabel' );
 	}

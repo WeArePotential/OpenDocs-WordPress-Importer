@@ -378,23 +378,6 @@ class OpenDocs_Importer_Admin {
 		wp_die();
 	}
 
-	/**
-	 * AJAX Callback function (insert new items)
-	 *
-	 * @since 1.0.0
-	 */
-	public function showImportList() {
-		$data      = $_POST['data'];
-		$data      = str_replace( "\\", "", $data );
-		$cleandata = json_decode( $data );
-		$wp_class  = new Wordpress_IDocs();
-		//error_log('PETER1 '.print_r($cleandata,true));
-		$result = $wp_class->getImportedPosts( $cleandata );
-		//error_log('PETER2 '.print_r($result,true));
-		echo json_encode( $result );
-		wp_die();
-	}
-
     /**
      * AJAX Callback function (update Job with recently imported items)
      *
@@ -749,7 +732,7 @@ class OpenDocs_Importer_Admin {
 	 *
 	 */
 	public function cronImportCallback() {
-		error_log( "PETER: cronImportCallback: ");
+		// error_log( "PETER: cronImportCallback: ");
 		$wp_class       = new Wordpress_IDocs();
 		$cron_schedules = $wp_class->getCRONSchedule();
 		$xmlAPIQuery    = new XML_IDocs_Query();
@@ -769,7 +752,7 @@ class OpenDocs_Importer_Admin {
 				$cronCondition = 1;
 			endif;
 			if ( $cronCondition === 1 ) :
-				error_log( "PETER: cronImportCallback: ". print_r($cron_schedule, true));
+                error_log( "PETER: cronImportCallback: ". print_r($cron_schedule, true));
 				$collectionID      = $cron_schedule['collectionID'];
                 $existingItems     = $wp_class->getExistingItemIds();
                 $existingItemCount = count( $existingItems );
@@ -821,8 +804,13 @@ class OpenDocs_Importer_Admin {
                         'email'          => $cron_schedule['email'],
                         'postIDs'        => $insertedPosts
                     );
-                    // Don't need to do this as we're not using the iteminfo table any more
-                    // $wp_class->updateCollectionInDB( $cron_schedule['ID'], $itemsIDs );
+                    $itemsArray = array(
+                            'postType' => $cron_schedule['postType'],
+                            'itemIDs'  => $insertedPosts,
+                            'jobID '   => $cron_schedule['ID']
+                    );
+                    updateJobImportList( (object)$itemsArray);
+
                     $wp_class->sendNotificationEmail( (object) $emailOpts );
 				endif;
 			endif;
@@ -953,7 +941,7 @@ class OpenDocs_Importer_Admin {
                             </div>
                             <div class="row coll-info"><span href="#" class="imported-items" data-cronid="<?php echo $import->id; ?>">
                                     <?php echo $itemsInCollection; ?> items, <?php echo $pendingCount;?> pending, <?php echo $ignoredCount;?> ignored</span>
-                                    <?php echo '<br /><a href="' . $importedItemsLink . '" target="_blank">Last import</a>';?>
+                                    <?php echo '<br /><a href="' . $importedItemsLink . '" title="'. $import->lastImport.'" target="_blank">Last import ('.count(explode(',',$import->lastImportedItems)).')</a>';?>
                             </div>
                             <div class="row coll-info coll-notify"><?php echo $notifyEmail; ?></div>
                             <div class="row coll-info import-post"

@@ -243,11 +243,7 @@ class XML_IDocs_Query implements IDocs_Query_Interface {
     		for($i = 0;$i < $totalPages;$i++) {
 		        $requests[$i] = $this->APIUrl . '/collections/' . $collectionID[1] . '/items/?offset=' . $i * $pager;
 			}
-    		if( $totalPages > 1 ) :
-				$itemDOMs = $this->getXMLDomDocMulti( $requests, true );
-			else : 
-				$itemDOMs = $this->getXMLDomDocMulti( $requests, true );
-			endif;
+			$itemDOMs = $this->getXMLDomDocMulti( $requests );
 			for($i = 0;$i < count( $itemDOMs );$i++) {
 				$itemNodes = $itemDOMs[ $i ]->getElementsByTagName( 'item' );
 				$itemIDs = [];
@@ -393,80 +389,6 @@ class XML_IDocs_Query implements IDocs_Query_Interface {
 		return $results;
 	}
 
-	/**
- 	* Retrieve item data
- 	*
- 	* Import each item data
- 	*
- 	* @since 1.0.0
- 	*
- 	* @param int $itemID Item ID
-	* @param string $xmlContent XML Content to get data from
-	* @param array $errorItemIDs contains list item Ids which are failed
-	*
- 	* @return int inserted post ID (Wordpress ID)
-	*/
-	private function retrieveValues($itemID, $xmlContent) {
-
-		$fieldValues = [];
-
-		// Load XML Content into DomDocument and initialize DOM XPath
-		$itemDom = new DOMDocument();
-        $itemDom->loadXML($xmlContent);
-    	$itemXPath = new DOMXPath($itemDom);
-
-		$postTypeInfo = $this->postTypeInfo;
-		$fieldMapping = $this->fieldMapping;
-		$itemHandles = $this->itemHandles;
-		$importedCount = count($this->insertedItemIDs);
-		$itemCount = $this->itemCount;
-		$itemIDs = $this->itemIDs;
-
-		$wp_class = new Wordpress_IDocs();
-		//error_log('PETER: retrieveValues: '. print_r($fieldMapping,true));
-
-		//Create field mapping array and retrieve meta data.
-    	foreach( $fieldMapping as $mapping ) :
-    		if( $mapping[1] == 'full_text_url' || $mapping[1] == 'full_text_type' || $mapping[1] == 'full_text_size' ) :
-				if( ! array_key_exists( 'field_type', $mapping ) ) :
-    				$fieldValues[] = array( 'field_id' => $mapping[0], 'field_name' => $mapping[1], 'field_value' => '', 'acf_name' => $mapping[3] );
-				else :
-					$fieldValues[] = array( 'field_id' => $mapping[0], 'field_name' => $mapping[1], 'field_value' => '', 'sub_fields' => $mapping['sub_fields'], 'field_type' => $mapping['field_type'], 'acf_name' => $mapping[3], 'sub_field_names' => $mapping[4] );
-				endif;
-    		else :
-			$mappedNodes = $itemXPath->query("//metadataentry[key[contains(., '" . $mapping[1] . "')]]/value");
-	    	foreach( $mappedNodes as $mappedNode ) :
-    			$fieldValue = $mappedNode->nodeValue;
-
-				$parentNode = $mappedNode->parentNode;
-				$lang = 'N/A';
-				$langEntries = $itemXPath->query("language", $parentNode);
-				foreach($langEntries as $langEntry) :
-					if( empty($langEntry->nodeValue) ) :
-						$lang = 'N/A';
-					else :
-						$lang = $langEntry->nodeValue;
-					endif;
-				endforeach;
-
-				if( ! array_key_exists( 'field_type', $mapping ) ) :
-					$fieldValues[] = array( 'field_id' => $mapping[0], 'field_name' => $mapping[1], 'field_value' => $fieldValue, 'acf_name' => $mapping[3], 'lang' => $lang );
-                else :
-					if( $mapping['field_type'] == 'repeater' ) :
-                        $fieldValues[] = array( 'field_id' => $mapping[0], 'field_name' => $mapping[1], 'field_value' => $fieldValue, 'sub_fields' => $mapping['sub_fields'], 'field_type' => $mapping['field_type'], 'acf_name' => $mapping[3], 'sub_field_names' => $mapping[4], 'lang' => $lang );
-					else :
-						$fieldValues[] = array( 'field_id' => $mapping[0], 'field_name' => $mapping[1], 'field_value' => $fieldValue, 'field_type' => $mapping['field_type'], 'lang' => $lang );
-					endif;
-                endif;
-	    		endforeach;
-    		endif;
-    	endforeach;
-
-		// Create Wordpress Post with retrieved meta data.
-		$insertedPostID = $wp_class->insertPost($itemID, $itemHandles[$itemID], $fieldValues, $postTypeInfo, $itemCount, $this->insertedItemIDs, $this->itemIDs, $this->cronID );
-		$this->insertedItemIDs[$itemID] = $insertedPostID;
-		return $insertedPostID;
-	}
 
 	private function retrieveValuesCRON($itemID, $xmlContent) {
 		$fieldValues = [];
@@ -789,10 +711,11 @@ class XML_IDocs_Query implements IDocs_Query_Interface {
 	private function getXMLDomDocMultiGetURL( $importedItems, $fileFields, $itemIDs ) {
 
 		ini_set('max_execution_time', 600);
-		//error_log( 'PETER: getXMLDomDocMultiGetURL: Going to work on : ' . print_r( count($itemIDs), true ) );
+        // error_log( 'PETER: getXMLDomDocMultiGetURL: $importedItems: ' . print_r( $importedItems, true ) );
+
+        //error_log( 'PETER: getXMLDomDocMultiGetURL: Going to work on : ' . print_r( count($itemIDs), true ) );
 		$requests = [];
 		$itemFiles = [];
-		// error_log( 'PETER: getXMLDomDocMultiGetURL: $importedItems: ' . print_r( $importedItems, true ) );
 
 		// Add each item's file to MultiCurl Get
 		foreach( $itemIDs as $itemID ) {

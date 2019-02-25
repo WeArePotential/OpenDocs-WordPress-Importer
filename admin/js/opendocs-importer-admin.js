@@ -434,8 +434,11 @@
             // console.log('PETER: allItemsImported: ', allItemsImported);
             if (allItemsImported) {
                 // Update the job with the recently updated items
-                updateJobImportList(JSON.stringify(allItemsImported[0]));
-                //showImportList(JSON.stringify(allItemsImported));
+                updateJobImportList(JSON.stringify({
+                    'postType': postType,
+                    'itemIDs': toImportItemIDs.join(','),
+                    'jobID': jobID
+                }));
                 console.log('All items imported');
             }
         });
@@ -493,10 +496,11 @@
                     $('.imported-progress').html('Imported ' + response + ' items of ' + newItemCount + skippedMSG);
                     if (response == newItemCount) {
                         clearTimeout(callbackTimer);
-                        updateJobImportList(JSON.stringify({'postType': postType,
+                        updateJobImportList(JSON.stringify({
+                            'postType': postType,
                             'itemIDs': itemIDs,
-                            'existingItems': '',
-                            'jobID': jobID}));
+                            'jobID': jobID
+                        }));
                         //showImportList(itemIDs);
                         $('<div id="finish-job" title="Info"><p>Import job complete<br />' + newItemCount + ' items imported.</p><p><a target="_blank" href="/wp-admin/edit.php?post_type=' + postType + '&odocs_item_id='+ encodeURI(itemIDs) +'">View imported posts</a></p></div>').dialog({
                             modal: true,
@@ -576,35 +580,8 @@
             });
         }
 
-        function showImportList(items) {
-            $.ajax({
-                url: ajaxurl,
-                type: "POST",
-                dataType: 'json',
-                data: {
-                    'action': 'showImportList',
-                    'data': items,
-                },
-                timeout: 0,
-                success: function (response) {
-                    if (toImportCount <= 0) {
-                        toImportCount = existingItemCount;
-                    }
-                    if (response) {
-                        $(".progress-wrap").hide();
-                        //showImportedPosts(response);
-                    }
-                }
-            });
-        }
-
-        function ImportItem(data) {
-            var isImported = 0;
-
-            return isImported;
-        }
-
         function updateJobImportList(items) {
+            // console.log('updateJobImportList: ', items);
             $.ajax({
                 url: ajaxurl,
                 type: "POST",
@@ -616,7 +593,7 @@
                 timeout: 0,
                 success: function (response) {
                     if (response) {
-                        console.log('updateJobImportList: response', response);
+                        // console.log('updateJobImportList: response', response);
                     }
                 }
             });
