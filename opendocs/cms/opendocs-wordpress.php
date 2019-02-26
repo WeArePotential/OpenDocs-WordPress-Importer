@@ -1,8 +1,8 @@
 <?php
 
-require_once WP_PLUGIN_DIR . '/opendocs/opendocs/opendocs-crud-interface.php';
-require_once WP_PLUGIN_DIR . '/opendocs/opendocs/provider/opendocs-xml-wrapper.php';
-require_once WP_PLUGIN_DIR . '/opendocs/includes/class-utils.php';
+require_once plugin_dir_path() . '/opendocs/opendocs/opendocs-crud-interface.php';
+require_once plugin_dir_path() . '/opendocs/opendocs/provider/opendocs-xml-wrapper.php';
+require_once plugin_dir_path() . '/opendocs/includes/class-utils.php';
 
 /**
  * The CMS Wrapper Class (Wordpress based)
@@ -131,6 +131,7 @@ class Wordpress_IDocs implements IDocs_CRUD {
 		global $wpdb;
 		$tableName   = $wpdb->prefix . 'odocs';
 		$importsList = $wpdb->get_results( "SELECT * FROM $tableName" );
+
 		return $importsList;
 	}
 
@@ -174,7 +175,7 @@ class Wordpress_IDocs implements IDocs_CRUD {
 							'sub_fields' => $fieldMapping->sub_fields,
 							'field_type' => $fieldMapping->type,
 							$fieldMapping->acf_name,
-                            ( property_exists($fieldMapping,'sub_field_names') ? $fieldMapping->sub_field_names : Null )
+							( property_exists( $fieldMapping, 'sub_field_names' ) ? $fieldMapping->sub_field_names : null )
 						);
 					else :
 						$mappingArray[] = array(
@@ -202,14 +203,14 @@ class Wordpress_IDocs implements IDocs_CRUD {
 		$itemHandleList = $itemObj->getItemHandles( $itemList );
 
 		foreach ( $mappingArray as $fieldMapping ) :
-            // We need to make sure we have both an associative array (with names) as well as positions.
+			// We need to make sure we have both an associative array (with names) as well as positions.
 			// TODO: Ensure that the mapping is always passed in the same way. This is a crazy way to do it!
 			if ( ! array_key_exists( 'field_name', $fieldMapping ) ) {
-				$fieldMapping['field_id']     = $fieldMapping[0];
-				$fieldMapping['field_name']   = $fieldMapping[1];
-				$fieldMapping['collectionID'] = $fieldMapping[2];
-				$fieldMapping['acf_name'] = ( isset( $fieldMapping[3] ) ? $fieldMapping[3] : '');
-                $fieldMapping['sub_field_names'] = ( isset( $fieldMapping[4] ) ? $fieldMapping[4] : '');
+				$fieldMapping['field_id']        = $fieldMapping[0];
+				$fieldMapping['field_name']      = $fieldMapping[1];
+				$fieldMapping['collectionID']    = $fieldMapping[2];
+				$fieldMapping['acf_name']        = ( isset( $fieldMapping[3] ) ? $fieldMapping[3] : '' );
+				$fieldMapping['sub_field_names'] = ( isset( $fieldMapping[4] ) ? $fieldMapping[4] : '' );
 
 			} else {
 				$fieldMapping[0] = $fieldMapping['field_id'];
@@ -262,6 +263,7 @@ class Wordpress_IDocs implements IDocs_CRUD {
 			'mappingArray' => $toInsertMapping
 		);
 		$insertedPostIDs = $itemObj->getItems( (object) $itemInfo, (object) $mappingInfo, $cronID );
+
 		return $insertedPostIDs;
 
 	}
@@ -371,7 +373,7 @@ class Wordpress_IDocs implements IDocs_CRUD {
 				endswitch;
 			endforeach;
 
-			$postArgs       = array(
+			$postArgs = array(
 				'post_title'   => $title,
 				'post_type'    => $postTypeInfo->postType,
 				'post_content' => $content,
@@ -394,9 +396,9 @@ class Wordpress_IDocs implements IDocs_CRUD {
 			$postMetaUpdate = $this->updatePostFields( $insertedPostID, $itemHandle, $mergedArray, $hasFileURL );
 
 			if ( $itemCount == $importedCount ) :
-                $itemObj = new XML_IDocs_Query();
-                $itemObj->setTimeout( 300 );
-                $downloadFile = $itemObj->getItemFiles( $importedItems, $fieldValues, $itemIDs );
+				$itemObj = new XML_IDocs_Query();
+				$itemObj->setTimeout( 300 );
+				$downloadFile = $itemObj->getItemFiles( $importedItems, $fieldValues, $itemIDs );
 			endif;
 
 			return $insertedPostID;
@@ -437,30 +439,30 @@ class Wordpress_IDocs implements IDocs_CRUD {
 						// Ignore LANG for taxonomy terms
 						// TODO: Sort out language stuff
 						// if ( $postMapping['lang'] == 'N/A' || $postMapping['lang'] == 'en' || $postMapping['lang'] == 'en_GB' ) :
-							// Pass taxonomy names to filter, to allow pluggable
-							if (!is_array($fieldValue)) {
-								$fieldValues = array($fieldValue);
-							} else {
-								$fieldValues = $fieldValue;
-							}
-							foreach($fieldValues  as $fieldValue) {
-								if ( $postMapping['field_name'] == 'dc.contributor.author' ) {
-									// WP doesn't allow a comma in taxonomy terms
-									// If we have an author, reverse the strings and remove the comma. .
-									$fieldValueParts = explode( ',', $fieldValue );
-									$fieldValue      = '';
-									foreach ( array_reverse( $fieldValueParts ) as $part ) {
-										$fieldValue .= ( strlen( $fieldValue ) > 0 ? ' ' : '' ) . $part;
-									}
+						// Pass taxonomy names to filter, to allow pluggable
+						if ( ! is_array( $fieldValue ) ) {
+							$fieldValues = array( $fieldValue );
+						} else {
+							$fieldValues = $fieldValue;
+						}
+						foreach ( $fieldValues as $fieldValue ) {
+							if ( $postMapping['field_name'] == 'dc.contributor.author' ) {
+								// WP doesn't allow a comma in taxonomy terms
+								// If we have an author, reverse the strings and remove the comma. .
+								$fieldValueParts = explode( ',', $fieldValue );
+								$fieldValue      = '';
+								foreach ( array_reverse( $fieldValueParts ) as $part ) {
+									$fieldValue .= ( strlen( $fieldValue ) > 0 ? ' ' : '' ) . $part;
 								}
-								$fieldValue  = apply_filters( 'odocs_taxonomy', $fieldValue, $postMapping['field_id'] );
-								$term_ids    = $this->getTermIDsByName( $fieldValue, $postMapping['field_id'] );
-								$categorySet = wp_set_object_terms( $insertedPostID, $term_ids, $postMapping['field_id'], true );
-								if ( ! is_wp_error( $categorySet ) ) :
-									$isUpdated = 1;
-								endif;
 							}
-						//endif;
+							$fieldValue  = apply_filters( 'odocs_taxonomy', $fieldValue, $postMapping['field_id'] );
+							$term_ids    = $this->getTermIDsByName( $fieldValue, $postMapping['field_id'] );
+							$categorySet = wp_set_object_terms( $insertedPostID, $term_ids, $postMapping['field_id'], true );
+							if ( ! is_wp_error( $categorySet ) ) :
+								$isUpdated = 1;
+							endif;
+						}
+					//endif;
 					// if repeater type, make array of sub_field_id => value
 					elseif ( $postMapping['field_type'] == 'repeater' ) :
 						$sub_fields      = $postMapping['sub_fields'];
@@ -503,6 +505,7 @@ class Wordpress_IDocs implements IDocs_CRUD {
 		endforeach;
 		// Add meta (hidden from ACF)
 		add_post_meta( $insertedPostID, 'odocs_item_handle', $itemHandle );
+
 		return $isUpdated;
 	}
 
@@ -795,47 +798,48 @@ class Wordpress_IDocs implements IDocs_CRUD {
 	}
 
 
-    /**
-     * Update Cron job
-     *
-     * Save changes to existing CRON job
-     *
-     * @since 1.0.0
-     *
-     * @param class $items class containing job info
-     *
-     * @return int CRON job ID
-     */
-    public function updateJobImportList( $items ) {
-        global $wpdb;
-        $tableName         = $wpdb->prefix . 'odocs';
-        $postType          = $items->postType;
-        $itemIDs           = $items->itemIDs;
-        $jobID             = $items->jobID;
-        $isUpdated         = False;
+	/**
+	 * Update Cron job
+	 *
+	 * Save changes to existing CRON job
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param class $items class containing job info
+	 *
+	 * @return int CRON job ID
+	 */
+	public function updateJobImportList( $items ) {
+		global $wpdb;
+		$tableName = $wpdb->prefix . 'odocs';
+		$postType  = $items->postType;
+		$itemIDs   = $items->itemIDs;
+		$jobID     = $items->jobID;
+		$isUpdated = false;
 
-        // error_log( 'PETER: updateJobImportList: Update job id  ' . $jobID . ': ' . print_r( $items, true ) );
-        $isJob = $wpdb->get_row( "SELECT id FROM $tableName WHERE id = $jobID" );
-        if ( $isJob ) :
-            $isUpdated = $wpdb->update( $tableName,
-                array(
-                    'lastImportedItems'       => $itemIDs,
-                    'lastImport'              => date('Y-m-d H:i:s')
-                ),
-                array(
-                    'id' => $isJob->id
-                ),
-                array(
-                    '%s',
-                    '%s'
-                ),
-                array(
-                    '%d'
-                )
-            );
-        endif;
-        return $isUpdated;
-    }
+		// error_log( 'PETER: updateJobImportList: Update job id  ' . $jobID . ': ' . print_r( $items, true ) );
+		$isJob = $wpdb->get_row( "SELECT id FROM $tableName WHERE id = $jobID" );
+		if ( $isJob ) :
+			$isUpdated = $wpdb->update( $tableName,
+				array(
+					'lastImportedItems' => $itemIDs,
+					'lastImport'        => date( 'Y-m-d H:i:s' )
+				),
+				array(
+					'id' => $isJob->id
+				),
+				array(
+					'%s',
+					'%s'
+				),
+				array(
+					'%d'
+				)
+			);
+		endif;
+
+		return $isUpdated;
+	}
 
 	public function deleteItemPost( $postID ) {
 		$itemID = get_post_meta( $postID, 'odocs_item_id', true );
@@ -1050,7 +1054,7 @@ class Wordpress_IDocs implements IDocs_CRUD {
 	public function checkIfImportComplete( $toImportItemIDs ) {
 		$importCount     = 0;
 		$existingItemIDs = $this->getExistingItemIds();
-		$itemIDs = explode( ',', $toImportItemIDs );
+		$itemIDs         = explode( ',', $toImportItemIDs );
 		foreach ( $itemIDs as $id ) {
 			//error_log('PETER: checkIfImportComplete: Check if '. $id .' is in '.print_r($existingItemIDs, true) );
 			//error_log( 'PETER: checkIfImportComplete: Answer ' . in_array( $id, $existingItemIDs ) );
@@ -1106,8 +1110,9 @@ class Wordpress_IDocs implements IDocs_CRUD {
 
 	public function getExistingItems() {
 		global $wpdb;
-		$tableName = $wpdb->prefix . 'postmeta';
-		$result    = $wpdb->get_results( "SELECT post_id, meta_value FROM $tableName WHERE meta_key = 'odocs_item_id'" );
+		$existingItems = [];
+		$tableName     = $wpdb->prefix . 'postmeta';
+		$result        = $wpdb->get_results( "SELECT post_id, meta_value FROM $tableName WHERE meta_key = 'odocs_item_id'" );
 		foreach ( $result as $row ) {
 			if ( get_post_status( $row->post_id ) != false ) { // Might be in metadata, but no longer existing!
 				$existingItems[ $row->meta_value ] = $row->post_id;

@@ -807,9 +807,9 @@ class OpenDocs_Importer_Admin {
                     $itemsArray = array(
                             'postType' => $cron_schedule['postType'],
                             'itemIDs'  => $insertedPosts,
-                            'jobID '   => $cron_schedule['ID']
+                            'jobID'   => $cron_schedule['ID']
                     );
-                    updateJobImportList( (object)$itemsArray);
+                    $wp_class->updateJobImportList( (object)$itemsArray);
 
                     $wp_class->sendNotificationEmail( (object) $emailOpts );
 				endif;

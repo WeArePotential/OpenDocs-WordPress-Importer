@@ -9,7 +9,7 @@
  * Plugin Name:       OpenDocs Importer
  * Plugin URI:        https://opendocs.ids.ac.uk/
  * Description:       Plugin imports content from the IDS Repository OpenDocs
- * Version:           3.0.3
+ * Version:           3.0.4
  * Author:            We Are Potential
  * Author URI:        http://wearepotential.org/
  * License:           GPL-2.0+
@@ -27,7 +27,7 @@ add_filter( 'cron_schedules', 'my_add_weekly' );
 function my_add_weekly( $schedules ) {
 	// add a 'weekly' schedule to the existing set
 	$schedules['thirty'] = array(
-		'interval' => 1800,
+		'interval' => 60, //1800,
 		'display' => __('30 Minutes')
 	);
 	return $schedules;

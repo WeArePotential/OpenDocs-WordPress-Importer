@@ -110,7 +110,7 @@
                     }
                 });
 
-                promise.then(function() {
+                promise.then(function () {
                     //console.log("PETER: Now get the list of items for: " + $("#tab-0").data("cron-id"));
                 });
 
@@ -166,7 +166,7 @@
                                 }
                                 var $row = '<div class="item-row' + (bExisting ? ' existing ' : '') + '" data-handle="' + tempArray[j][6] + '" data-existing="' + bExisting + '">';
                                 var $checkboxes = '<div class="item-select"><input type="checkbox" name="item-' + tempArray[j][0] + '" value="' + tempArray[j][0] + '" id="import' + tempArray[j][0] + '"' + ((status == "import") ? ' checked ' : '') + (bExisting ? ' disabled readonly="readonly" ' : '') + ' /></div>';
-                                $checkboxes = $checkboxes + '<div class="item-select"><input type="checkbox" name="item-' + tempArray[j][0] + '" value="' + tempArray[j][0] + '" id="ignore' + tempArray[j][0]  + '"' + ((status == "ignore") ? ' checked ' : '') + (bExisting ? ' disabled readonly="readonly" ' : '') +  '/></div>';
+                                $checkboxes = $checkboxes + '<div class="item-select"><input type="checkbox" name="item-' + tempArray[j][0] + '" value="' + tempArray[j][0] + '" id="ignore' + tempArray[j][0] + '"' + ((status == "ignore") ? ' checked ' : '') + (bExisting ? ' disabled readonly="readonly" ' : '') + '/></div>';
                                 $row = $row + $checkboxes + '<div class="item-title" for="' + tempArray[j][0] + '">' + tempArray[j][1] + '</div>';
                                 $row = $row + '<div class="item-date">';
                                 $row = $row + '<a href="' + apiurl + tempArray[j][6] + '?show=full" title="View on OpenDocs" target="opendocs">Item</a>';
@@ -328,7 +328,7 @@
 
             $(".items-to-import.items-list:not(.imported-list) .item-row").each(function (index) {
                 totalRecords++;
-                if ($(this).data('data-existing') == 'true' ) { // Can't import existing
+                if ($(this).data('data-existing') == 'true') { // Can't import existing
                     existingItemCount++;
                 } else {
                     if ($(this).find(".item-select").eq(1).find("input:checkbox").is(':checked')) {
@@ -502,7 +502,7 @@
                             'jobID': jobID
                         }));
                         //showImportList(itemIDs);
-                        $('<div id="finish-job" title="Info"><p>Import job complete<br />' + newItemCount + ' items imported.</p><p><a target="_blank" href="/wp-admin/edit.php?post_type=' + postType + '&odocs_item_id='+ encodeURI(itemIDs) +'">View imported posts</a></p></div>').dialog({
+                        $('<div id="finish-job" title="Info"><p>Import job complete<br />' + newItemCount + ' items imported.</p><p><a target="_blank" href="/wp-admin/edit.php?post_type=' + postType + '&odocs_item_id=' + encodeURI(itemIDs) + '">View imported posts</a></p></div>').dialog({
                             modal: true,
                             buttons: [{
                                 text: "OK", click: function () {
@@ -598,6 +598,7 @@
                 }
             });
         }
+
         function groupArrayByCollectionID(itemIDs, postTypes) {
             var groupedArray = [];
             for (var i = 0; i < postTypes.length; i++) {
@@ -736,7 +737,7 @@
                     "Ok": function () {
                         var data = {'action': action, 'data': clickedId};
                         var dialog = this;
-                            $.ajax({
+                        $.ajax({
                             url: ajaxurl,
                             type: "POST",
                             data: data,
@@ -751,7 +752,7 @@
                         $(this).dialog("close");
                     }
                 },
-                close: function(event, ui) {
+                close: function (event, ui) {
                     //location.reload();
                 }
             }).dialog("open");
@@ -867,7 +868,7 @@
         $(".btn_save .opendoc_btn").on('click', function (e) {
             // Save the current job info.
             var jobName = $(".field-mapping input[name='job-name']").val();
-            console.log('PETER: Jobname = '+jobName);
+            console.log('PETER: Jobname = ' + jobName);
             var cronid = $('#tab-0').data('cron-id');
             var dataToImport = buildSaveData(cronid);
             var ajaxdata = {
@@ -876,20 +877,20 @@
             };
 
             var promise = $.ajax({
-                    url: ajaxurl,
-                    type: "POST",
-                    data: ajaxdata,
-                    dataType: 'json',
-                    timeout: 0,
-                    beforeSend: function () {
-                        $(".community-wrap .ajax-loader").show();
-                    },
-                    success: function (response) {
-                        console.log("PETER: Updated job with cron_id: " + response);
-                    }
-                });
+                url: ajaxurl,
+                type: "POST",
+                data: ajaxdata,
+                dataType: 'json',
+                timeout: 0,
+                beforeSend: function () {
+                    $(".community-wrap .ajax-loader").show();
+                },
+                success: function (response) {
+                    console.log("PETER: Updated job with cron_id: " + response);
+                }
+            });
 
-            promise.then(function() {
+            promise.then(function () {
                 $("#tabs .ui-tabs-active a").text(jobName);
                 $('<div id="saveSuccess" title="Info"><p>Changes Saved</p></div>').dialog({
                     modal: true,
@@ -943,7 +944,7 @@
                     buildOptionsTable($thisJobLink);
                     $(".community-wrap .ajax-loader").hide();
                 },
-                error: function(jqXHR, exception) {
+                error: function (jqXHR, exception) {
                     if (jqXHR.status === 0) {
                         alert('Not connect.\n Verify Network.');
                     } else if (jqXHR.status == 404) {
@@ -1069,7 +1070,7 @@
             // This builds from the first page, which lists all jobs
             var collID = jobLinkOBJ.data("collectionid");
             var importRowOBJs = jobLinkOBJ.parent().parent();
-            $(importRowOBJs).each( function (index, el) {
+            $(importRowOBJs).each(function (index, el) {
                 var importRowOBJ = $(this);
                 //console.log('PETER: Current Cron id for list: ' + importRowOBJ.find('.imported-items').data('cronid'));
                 var savedFrequency = importRowOBJ.find(".col-frequency").data("frequency");
@@ -1209,7 +1210,10 @@
 
         $(".btn_post_mapping button").on('click', function () {
             $(".community-wrap .ajax-loader").show();
-            var dataToLoad = {'cronID': cronID, 'collID': $(".opendocs-communities a.selected-collection").data("collid")};
+            var dataToLoad = {
+                'cronID': cronID,
+                'collID': $(".opendocs-communities a.selected-collection").data("collid")
+            };
             var data = {
                 'action': 'loadPostSelector',
                 'data': JSON.stringify(dataToLoad)
@@ -1223,9 +1227,9 @@
                     var jobtitle = $(".opendocs-form .job-title").val();
                     addTab(response1, jobtitle, 0, $(".opendocs-communities a.selected-collection").data("collid"));
                     $(".field_mapping input[name='job_title']").val(jobtitle);
-                    $(".field-mapping .field-mapping-title").html('Select Post Type to import for <a target="opendocs" href="'+ apiurl + $(".opendocs-communities a.selected-collection").data("comm-handle")+'">' + $(".opendocs-communities a.selected-collection").data("comm-name")) + '</a>';
+                    $(".field-mapping .field-mapping-title").html('Select Post Type to import for <a target="opendocs" href="' + apiurl + $(".opendocs-communities a.selected-collection").data("comm-handle") + '">' + $(".opendocs-communities a.selected-collection").data("comm-name")) + '</a>';
                     $(".community-wrap .ajax-loader").hide();
-                    $( 'html, body' ).animate( { scrollTop: $( "#tabs" ).offset().top }, 500 );
+                    $('html, body').animate({scrollTop: $("#tabs").offset().top}, 500);
                     $(".btn_post_mapping").hide();
                     $(".form-wrap[data-page='2']").hide();
                     $(".form-wrap[data-page='3']").show();
@@ -1263,7 +1267,7 @@
                 'action': 'getACFields',
                 'cptName': selPostType
             };
-            console.log('PETER: getACFFields: ',data);
+            console.log('PETER: getACFFields: ', data);
             if ($(this).val() != 'sel') {
                 $(".field-mapping .acf-mapping").show();
                 $(".btn_next").show();
