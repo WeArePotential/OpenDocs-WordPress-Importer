@@ -9,7 +9,7 @@
  * Plugin Name:       OpenDocs Importer
  * Plugin URI:        https://opendocs.ids.ac.uk/
  * Description:       Plugin imports content from the IDS Repository OpenDocs
- * Version:           3.0.4
+ * Version:           3.1.0
  * Author:            We Are Potential
  * Author URI:        http://wearepotential.org/
  * License:           GPL-2.0+
